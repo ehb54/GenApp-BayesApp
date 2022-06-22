@@ -1,0 +1,330 @@
+{
+    "moduleid" : "ift"
+    ,"label"    : "BayesApp"
+    ,"executable"   : "ift"
+    ,"submitpolicy" : "all"
+#    ,"uniquedir" : "true"
+#    ,"center" : "true"
+    ,"centeroutput" : "true"
+# dependencies:
+# apt-get install libgfortran3 libpng-dev libreadline-dev
+# install and compile gnuplot 4.2.6 with gif support    
+    ,"fields"   : [
+        {
+            "role"       : "input"
+            ,"id"        : "label_0"
+            ,"type"      : "label"
+            ,"colspan"   : 3
+            ,"default"   : "header3"
+            ,"label"     : "BayesApp [<a target=_blank href=https://scripts.iucr.org/cgi-bin/paper?pe0063>1,</a><a target=_blank href=https://onlinelibrary.wiley.com/iucr/doi/10.1107/S0021889812014318>2,</a><a target=_blank href=http://journals.iucr.org/j/issues/2014/04/00/he5656>3,</a><a target=_blank href=https://scripts.iucr.org/cgi-bin/paper?gk0508>4,</a><a target=_blank href=https://github.com/Niels-Bohr-Institute-XNS-StructBiophys/BayesApp>Source code</a>]"
+# old refs?
+#            ,"label"     : "BayesApp [<a href=http://igm.fys.ku.dk/&#126;steen/jac45_566.pdf>1,</a><a href=http://bayesapp.org/&#126;bayes/upload/ift/ift1.pdf>2,</a><a href=http://bayesapp.org/&#126;bayes/upload/ift/ift2.pdf>3,</a><a href=http://igm.fys.ku.dk/&#126;steen/jac_47_1469.pdf>4</a>]"
+            ,"prehline"  : "true"
+            ,"posthline" : "true"
+        }
+        ,{
+            "role"       : "input"
+            ,"id"         : "datafile"
+            ,"label"      : "Data file"
+# need to force copy over
+#            ,"type"       : "lrfile"
+            ,"type"       : "file"
+            ,"required"   : "true"
+            ,"help"       : "<p>i): Format (q, I(q), error). Data points are rebinned to a maximum of 80 points.</p><p>ii): Text lines in the data file are ignored.</p><p>iii): Maximum dynamic range for I(q) is about 1000 using the web version due to the limited resolution of p(r).</p>"
+        }
+        ,{
+            "role"       : "input"
+            ,"id"         : "qmin"
+            ,"label"      : "Qmin [Angstrom^-1]"
+            ,"type"       : "float"
+            ,"step"       : 0.001
+            ,"help"       : "Optionally enter q min in inverse Angstroms."
+        }
+        ,{
+            "role"       : "input"
+            ,"id"         : "qmax"
+            ,"label"      : "Qmax [Angstrom^-1]"
+            ,"type"       : "float"
+            ,"step"       : 0.001
+            ,"help"       : "Qptionally Enter q max in inverse Angstroms."
+        }
+        ,{
+            "role"       : "input"
+            ,"id"         : "fitbackground"
+            ,"label"      : "Fit background"
+            ,"type"       : "checkbox"
+            ,"help"       : "A constant (flat) background is fitted to the data."
+        }
+        ,{
+            "role"       : "input"
+            ,"id"         : "dmax"
+            ,"label"      : "Maximum diameter [Angstrom]"
+            ,"type"       : "float"
+            ,"step"       : 0.001
+            ,"min"        : 0
+            ,"help"       : "Optionally enter starting value for the maximum diameter of the scatterer in Angstroms."
+            ,"norow"      : "true"
+        }
+        ,{
+            "role"       : "input"
+            ,"id"         : "dmaxfixed"
+            ,"label"      : "Fix"
+            ,"type"       : "checkbox"
+            ,"help"       : "Fix the defined maximum diameter"
+        }
+        ,{
+            "role"       : "input"
+            ,"id"         : "alpha"
+            ,"label"      : "Starting value for the Lagrange multiplier (Alpha)"
+            ,"type"       : "float"
+            ,"step"       : 0.001
+            ,"help"       : "<p>Optionally enter the starting value for the logarithm of the Lagrange multiplier (usually between -10 and 20).</p><p>Larger values will give smoother distributions or - for the MaxEnt constraint:</p><p>an estimate which is closer to the prior ellipsoid of revolution.</p>"
+            ,"norow"      : "true"
+        }
+        ,{
+            "role"       : "input"
+            ,"id"         : "alphafixed"
+            ,"label"      : "Fix"
+            ,"type"       : "checkbox"
+            ,"help"       : "Fix the Lagrange multiplier"
+        }
+        ,{
+            "role"       : "input"
+            ,"id"         : "smearing"
+            ,"label"      : "Desmearing constant"
+            ,"type"       : "float"
+            ,"step"       : 0.001
+            ,"help"       : "<p>Optionally enter a correction for slit smearing. Default is no smearing.</p><p>Enter value for constant c as given by the expression</p><p>I_smear(q) = integrate P(t)*I(sqrt(q**2 + t**2)) dt with the</p><p>primary beam length profile: P(t) = c/sqrt(pi) * exp(-c**2*t**2).</p><p>The fit and the deconvolution are both given in the ouput file fit.d</p>"
+        }
+        ,{
+            "role"       : "input"
+            ,"id"         : "prpoints"
+            ,"label"      : "Number of points in p(r)"
+            ,"type"       : "integer"
+            ,"min"        : 10
+            ,"default"    : 50
+            ,"max"        : 100
+            ,"help"       : "<p>Optionally enter the number of points in the estimated function p(r): more points increase the cpu-time.</p><p>Default: 50, Maximum 100</p>"
+        }
+        ,{
+            "role"       : "input"
+            ,"id"         : "smallplot"
+            ,"label"      : "Small plot"
+            ,"type"       : "checkbox"
+            ,"help"       : "Check to produce small versions of the plots"
+        }
+        ,{
+            "role"       : "input"
+            ,"id"         : "noextracalc"
+            ,"label"      : "Number of extra error calculations"
+            ,"type"       : "integer"
+            ,"min"        : 10
+            ,"max"        : 1000
+            ,"help"       : "<p>Optionally Input number of extra error calculations (max 1000).</p><p>Entering a large number will improve the error estimate,</p><p>but require more cpu time.</p><p>In some cases it may be a little tricky to obtain a decent</p><p>error estimate. Try testing a couple of values to see the effect. </p>"
+        }
+        ,{
+            "role"       : "input"
+            ,"id"         : "transform"
+            ,"label"      : "Transformation/Regularization"
+            ,"type"       : "listbox"
+            ,"values"     : "Debye (default -> returning p(r) with positivity constraint)~D~Negative (Debye transformation -> returning p(r) without positivity constraint)~N~MaxEnt using an ellipsoid of revolution as prior ( -> p(r) -positivity constraint)~M~Bessel (for cylindrical scatterers -> cross section distribution)~B~Cosine (lamellae -> thickness distribution)~C~Size (using spheres only -> size distribution)~S"
+            ,"help"       : "<p>[D]ebye (default -> returning p(r) with positivity constraint)                                        sin(q*r)/(q*r) * dr</p><p>[N]egative (Debye transformation -> returning p(r) without positivity constraint)       sin(q*r)/(q*r) * dr</p><p>[M]axEnt using an ellipsoid of revolution as prior ( -> p(r) -positivity constraint)       sin(q*r)/(q*r) * dr</p><p>     The axial ratio for the ellipsoid is optimized using the posterior probability.</p><p>     The axial ratio may be initialized or fixed using the box <i>Estimate axial ratio</i></p><p>     (leave the box <i>Fit axial ratio</i> empty).</p><p>[B]essel (for cylindrical scatterers -> cross section distribution)        J_0(q*r)/q * dr</p><p>[C]osine (lamellae -> thickness distribution)                                    cos(q*r)/q**2 * dr</p><p>[S]ize (using spheres only -> size distribution)        (3*sin(q*r)-q*r*cos(q*r))/(q*r)**3)**2 * dr </p>"
+        }
+        ,{
+            "role"       : "input"
+            ,"id"         : "nondilute"
+            ,"label"      : "Non-dilute solution"
+            ,"type"       : "checkbox"
+            ,"repeater"   : "true"
+            ,"help"       : "Check for non-dilute solutions"
+        }
+        ,{
+            "role"       : "input"
+            ,"id"         : "eta"
+            ,"label"      : "Estimate value for volume fraction"
+            ,"type"       : "float"
+            ,"step"       : 0.001
+            ,"min"        : 0
+            ,"repeat"     : "nondilute"
+            ,"help"       : "<p>The exact value entered here may influence the result when the information content of the data is low.</p><p>Start with a small number e.g. 0.01 to avoid numerical instabilities and long cpu times.</p>"
+        }
+        ,{
+            "role"       : "input"
+            ,"id"         : "fitratio"
+            ,"label"      : "Fit axial ratio method"
+            ,"type"       : "listbox"
+            ,"repeat"     : "nondilute"
+            ,"values"     : "No concentration effects~noconceffects~Moment~moment~No~no~Evidence~evidence"
+            ,"help"       : "Optionally enter the method" 
+        }
+        ,{
+            "role"       : "input"
+            ,"id"         : "estimateratio"
+            ,"label"      : "Estimate the axial ratio"
+            ,"type"       : "float"
+            ,"step"       : 0.001
+            ,"repeat"     : "nondilute"
+            ,"help"       : "Optionally enter an estimate of the axial ratio"
+            ,"norow"      : "true"
+        }
+        ,{
+            "role"       : "input"
+            ,"id"         : "estimateratiofixed"
+            ,"label"      : "Fix"
+            ,"type"       : "checkbox"
+            ,"repeat"     : "nondilute"
+            ,"help"       : "Fix the estimated axial ratio"
+        }
+        ,{
+            "role"       : "output"
+            ,"id"         : "hroutput"
+            ,"label"      : "<hr>"
+            ,"type"       : "label"
+            ,"colspan"    : 2
+        }
+        ,{
+            "role"       : "output"
+            ,"id"         : "pr"
+            ,"label"      : "P(r)"
+            ,"type"       : "file"
+            ,"help"       : "The produced P(r) file"
+        }
+        ,{
+            "role"       : "output"
+            ,"id"         : "fitofdata"
+            ,"label"      : "Fit of data"
+            ,"type"       : "file"
+            ,"help"       : "The fit of the data"
+        }
+        ,{
+            "role"       : "output"
+            ,"id"         : "dataused"
+            ,"label"      : "Data used"
+            ,"type"       : "file"
+            ,"help"       : "The data used"
+        }
+#        ,{
+#            "role"       : "output"
+#            ,"id"         : "rgi0dmax"
+#            ,"label"      : "Rg, I(0) and Dmax"
+#            ,"type"       : "file"
+#            ,"help"       : "The Rg, I(0) and Dmax in a file"
+#        }
+        ,{
+            "role"       : "output"
+            ,"id"         : "parameters"
+            ,"label"      : "Parameters"
+            ,"type"       : "file"
+            ,"help"       : "The parameters file"
+        }
+        ,{
+            "role"       : "output"
+            ,"id"         : "zip"
+            ,"label"      : "Results zipped"
+            ,"type"       : "file"
+            ,"help"       : "Results packaged in a zip file"
+        }
+        ,{
+            "role"       : "output"
+            ,"id"         : "tgz"
+            ,"label"      : "Results tar gzipped"
+            ,"type"       : "file"
+            ,"help"       : "Results packaged as a gzipped tar file"
+        }
+        ,{
+            "role"       : "output"
+            ,"id"         : "hroutput2"
+            ,"label"      : "<hr>"
+            ,"type"       : "label"
+            ,"colspan"    : 2
+        }
+        ,{
+            "role"       : "output"
+            ,"id"         : "Rg"
+            ,"label"      : "Rg [Angstrom]"
+            ,"type"       : "text"
+        }
+        ,{
+            "role"       : "output"
+            ,"id"         : "axratio"
+            ,"label"      : "Axial ratio"
+            ,"type"       : "text"
+        }
+        ,{
+            "role"       : "output"
+            ,"id"         : "minusK"
+            ,"label"      : "-K"
+            ,"type"       : "text"
+        }
+        ,{
+            "role"       : "output"
+            ,"id"         : "chi2"
+            ,"label"      : "chi^2"
+            ,"type"       : "text"
+        }
+        ,{
+            "role"       : "output"
+            ,"id"         : "logalpha"
+            ,"label"      : "log(alpha)"
+            ,"type"       : "text"
+        }
+        ,{
+            "role"       : "output"
+            ,"id"         : "etaout"
+            ,"label"      : "Eta"
+            ,"type"       : "text"
+        }
+        ,{
+            "role"       : "output"
+            ,"id"         : "dmaxout"
+            ,"label"      : "Dmax"
+            ,"type"       : "text"
+        }
+        ,{
+            "role"       : "output"
+            ,"id"         : "I0"
+            ,"label"      : "I(0) estimated"
+            ,"type"       : "text"
+        }
+        ,{
+            "role"       : "output"
+            ,"id"         : "Ng"
+            ,"label"      : "Ng (Number of good parameters)"
+            ,"type"       : "text"
+#            ,"help"       : "Number of good parameters"
+        }
+        ,{
+            "role"       : "output"
+            ,"id"         : "shannon"
+            ,"label"      : "Number of Shannon channels"
+            ,"type"       : "text"
+        }
+        ,{
+            "role"       : "output"
+            ,"id"         : "evidence"
+            ,"label"      : "Evidence at maximum"
+            ,"type"       : "text"
+        }
+        ,{
+            "role"       : "output"
+            ,"id"         : "hroutput3"
+            ,"label"      : "<hr>"
+            ,"type"       : "label"
+            ,"colspan"    : 2
+        }
+        ,{
+            "role"       : "output"
+            ,"id"         : "prfig"
+            ,"label"      : ""
+            ,"type"       : "image"
+            ,"width"      : "80%"
+        }
+        ,{
+            "role"       : "output"
+            ,"id"         : "iqfig"
+            ,"label"      : ""
+            ,"type"       : "image"
+            ,"width"      : "80%"
+        }
+    ]
+}
