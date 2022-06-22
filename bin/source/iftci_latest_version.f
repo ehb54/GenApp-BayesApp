@@ -252,10 +252,13 @@ c****************************************************************
 c if ndata > xx reading data from dummy and rebinning into dummy2
 c****************************************************************
       nr=ndata/nrebin
+c      write(6,*)'nr=ndata/nrebin',nr
       nr2=ndata/nr
+c      write(6,*)'nr2=ndata/nr',nr2
       nrest=ndata-nr2*nr
+c      write(6,*)'nrest=ndata-nr2*nr',nrest
 
-c     nr: rebin no.
+c     nr: points per bin, binsize
 c     nr2(+1): number of data points used (after rebinning)
 
       open(111,file='dummy.d',status='old')
@@ -291,10 +294,6 @@ c     nr2(+1): number of data points used (after rebinning)
       x1sum=x1sum/nr
       y1sum=y1sum/nr
       sd1sum=sqrt(sd1sum)/nr
-c      Radius=5.0
-c      volfrac=0.07
-c      StructFact=Sq(x1sum,Radius,volfrac)
-c      y1sum=y1sum/StructFact
       write(44,*)x1sum,y1sum,sd1sum
  1313 continue
 
@@ -2378,8 +2377,6 @@ c     -,c,ratio,DOTSP,f(20),evidence
       itetot=itetot+ite
       call system_clock(clock)
       cpu=(clock-clockold)*0.001
-
-
 
       goto 8142
 
