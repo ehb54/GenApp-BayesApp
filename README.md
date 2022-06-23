@@ -17,7 +17,10 @@ source code (fortran)
 compile example bash script in compile.sh (system dependent)    
 
 #### bin/bayesapp.py
-python wrapper (input/output, run bift executable)    
+python wrapper (input/output, run bift executable)  
+
+#### modules/bayesapp.json
+GUI for web application   
 
 #### .github/workflows
 instructions for compilation on different OS. 
