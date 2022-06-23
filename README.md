@@ -1,7 +1,7 @@
 # BayesApp (hosted on GenApp)
 Source code for the BayesApp software package    
 
-online application at GenApp: https://somo.chem.utk.edu/bayesapp/    
+online web application at GenApp: https://somo.chem.utk.edu/bayesapp/    
 
 Calculates the pair distance distribution function, p(r), from a SAXS/SANS dataset by a Bayesian indirect Fourier transformation (BIFT) algorithm    
 
@@ -12,13 +12,22 @@ With contributions from: Andreas Haahr Larsen, Martin Cramer Pedersen
 
 ## File overview
 
-#### bift.f
+#### bin/source/bift.f
 source code (fortran)    
+compile example bash script in compile.sh (system dependent)    
+
+#### bin/bayesapp.py
+python wrapper (input/output, run bift executable)    
 
 #### .github/workflows
 instructions for compilation on different OS. 
 
 ## Instructions for running the program
+
+#### webinterface with GUI      
+https://somo.chem.utk.edu/bayesapp/     
+
+#### run locally (batch mode)    
 1) Compilation (linux):  gfortran -march=native -O3 bift.f -o bift    
                          -march=native may be left out     
                          -m64 or -m32 may be added     
