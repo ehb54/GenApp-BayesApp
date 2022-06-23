@@ -18,7 +18,7 @@
             ,"type"      : "label"
             ,"colspan"   : 3
             ,"default"   : "header3"
-            ,"label"     : "BayesApp [<a target=_blank href=https://scripts.iucr.org/cgi-bin/paper?pe0063>1,</a><a target=_blank href=https://onlinelibrary.wiley.com/iucr/doi/10.1107/S0021889812014318>2,</a><a target=_blank href=https://scripts.iucr.org/cgi-bin/paper?gk0508>3,</a><a target=_blank href=https://scripts.iucr.org/cgi-bin/paper?wf5022>4,</a><a target=_blank href=https://doi.org/10.1107/S1600576721006877>5,</a><a target=_blank href=https://github.com/ehb54/GenApp-BayesApp>Source code</a>]"
+            ,"label"     : "BayesApp [<a target=_blank href=https://scripts.iucr.org/cgi-bin/paper?pe0063>1,</a><a target=_blank href=https://onlinelibrary.wiley.com/iucr/doi/10.1107/S0021889812014318>2,</a><a target=_blank href=https://scripts.iucr.org/cgi-bin/paper?gk0508>3,</a><a target=_blank href=https://scripts.iucr.org/cgi-bin/paper?wf5022>4,</a><a target=_blank href=https://doi.org/10.1107/S1600576721006877>5,</a><a target=_blank href=https://github.com/Niels-Bohr-Institute-XNS-StructBiophys/BayesApp>Source code</a>]"
             ,"prehline"  : "true"
             ,"posthline" : "true"
         }
