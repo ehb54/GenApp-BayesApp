@@ -18,7 +18,7 @@ compile.sh: example bash script for compiling bift.f (system dependent)
 bift (no extension): executable (system dependent)     
 
 #### bin/bayesapp.py
-python wrapper (input/output, run bift executable)  
+python wrapper for web appllication (takes input from GUI, runs bift, sends output to GUI)  
 
 #### modules/bayesapp.json
 GUI for web application   
