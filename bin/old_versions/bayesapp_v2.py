@@ -139,10 +139,17 @@ if __name__=='__main__':
                 else:
                     out_line = '%s\n' % nline_latin
                     d.udpmessage({"_textarea": out_line})
+                    #Debugging below:
+                    #out_line_2 = 'output_size = %d, max_output_size = %d\n' % (total_output_size,maximum_output_size)
+                    #d.udpmessage({"_textarea": out_line_2})
+                    #out_line_3 = 'time = %1.1f, max_time = %1.1f\n' % (total_time,maximum_time)
+                    #d.udpmessage({"_textarea": out_line_3})
                 f.write(out_line)
     
     f = open('stdout.d','w')
+    #execute(['/opt/genapp/bayesapp/bin/source/iftci','<','inputfile.d'],f)
     path = os.path.dirname(os.path.realpath(__file__)) 
+    #execute([os.path.dirname(os.path.realpath(__file__)) + '/source/iftci','<','inputfile.d'],f)
     execute([path + '/source/bift','<','inputfile.d'],f)
     f.close()
 
@@ -162,6 +169,12 @@ if __name__=='__main__':
             tmp = line.split(':')[1]
             Rg = float(tmp.split('+-')[0])
             #d_Rg = tmp.split('+-')[1]
+#        if 'Axial ratio from p(r) (pro):' in line:
+#            tmp = line.split(':')[1]
+#            ax_pro = float(tmp.split('+-')[0])
+#        if 'Axial ratio from p(r) (obl):' in line:
+#            tmp = line.split(':')[1]
+#            ax_obl = float(tmp.split('+-')[0])
         if 'Reduced Chi-square         :' in line:
             tmp = line.split(':')[1]
             chi2r = float(tmp.split('+-')[0])
@@ -237,13 +250,8 @@ if __name__=='__main__':
     p1.plot(qfit,Ifit*0,linewidth=linewidth,color='black',zorder=1)
     p1.set_xlabel(r'$q$')
     p1.set_ylabel(r'$I(q)/\sigma$')
-    try:
-        p1.set_ylim(-maxR,maxR)
-        p1.set_yticks([-maxR,0,maxR])
-    except:
-        d.udpmessage({"_textarea":"WARNING: Some residuals are either NaN or inf - bad fit?\n"})
-        d.udpmessage({"_textarea":"         probably just a numerical instability\n"})
-        d.udpmessage({"_textarea":"         try changing the number of points in p(r)\n"})
+    p1.set_ylim(-maxR,maxR)
+    p1.set_yticks([-maxR,0,maxR])
 
     plt.savefig('Iq.png',dpi=200)
     plt.tight_layout()
@@ -278,21 +286,22 @@ if __name__=='__main__':
     p1.plot(qfit,Ifit*0,linewidth=linewidth,color='black',zorder=1)
     p1.set_xlabel(r'$q$')
     p1.set_ylabel(r'$I(q)/\sigma_\mathrm{rescale}$')
-    try:
-        p1.set_ylim(-maxR_rs,maxR_rs)
-        p1.set_yticks([-maxR_rs,0,maxR_rs])
-    except:
-        d.udpmessage({"_textarea":"WARNING: Some residuals are either NaN or inf - bad fit?\n"})
-        d.udpmessage({"_textarea":"         probably just a numerical instability\n"})
-        d.udpmessage({"_textarea":"         try changing the number of points in p(r)\n"})
+    p1.set_ylim(-maxR_rs,maxR_rs)
+    p1.set_yticks([-maxR_rs,0,maxR_rs])
+    
     plt.savefig('Iq_rs.png',dpi=200)
     plt.tight_layout()
     plt.close()
 
     ## copy source code to output folder (and rename)
+    #os.system('cp /opt/genapp/bayesapp/bin/source/iftci_latest_version.f %s/bift.f' % folder)    
     os.system('cp %s/source/bift.f %s' % (path,folder))
 
     ## compress output files to zip file
+#    if eta != 'default':
+#        os.system('zip results.zip pr.d data.d fit.d parameters.d rescale.d scale_factor.d stdout.d bift.f inputfile.d *.png gs_pr.d gx_pr.d st_pr.d')
+#    else:
+#        os.system('zip results.zip pr.d data.d fit.d parameters.d rescale.d scale_factor.d stdout.d bift.f inputfile.d *.png')
     os.system('zip results.zip pr.d data.d fit.d parameters.d rescale.d scale_factor.d stdout.d bift.f inputfile.d *.png')
 
     ## generate output
