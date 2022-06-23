@@ -8,4 +8,4 @@ ajax
 appconfig.json
 directives.json
 bin/__pycache__/
-
+directives.json.template
