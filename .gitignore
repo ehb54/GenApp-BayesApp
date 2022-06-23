@@ -7,4 +7,5 @@ ajax
 *\#
 appconfig.json
 directives.json
+__pycache__/
 
