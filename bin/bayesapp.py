@@ -292,7 +292,9 @@ if __name__=='__main__':
     plt.close()
 
     ## copy source code to output folder (and rename)
-    os.system('cp /opt/genapp/bayesapp/bin/source/iftci_latest_version.f %s/bift.f' % folder)    
+    #os.system('cp /opt/genapp/bayesapp/bin/source/iftci_latest_version.f %s/bift.f' % folder)    
+    path = os.path.dirname(os.path.realpath(__file__))
+    os.system('cp %s/source/iftci_latest_version.f %s/bift.f' % (path,folder))
 
     ## compress output files to zip file
 #    if eta != 'default':
