@@ -14,7 +14,8 @@ With contributions from: Andreas Haahr Larsen, Martin Cramer Pedersen
 
 #### bin/source/bift.f
 source code (fortran)    
-compile example bash script in compile.sh (system dependent)    
+compile.sh: example bash script for compiling bift.f (system dependent)    
+bift (no extension): executable (system dependent)     
 
 #### bin/bayesapp.py
 python wrapper (input/output, run bift executable)  
