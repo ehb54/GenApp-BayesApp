@@ -19,8 +19,7 @@ if __name__=='__main__':
 
     ## read Json input
     data_file_path = json_variables['datafile'][0] # name of datafile
-    #data = data_file_path.split('/')[-1] 
-    prefix = data_file_path.split('/')[-1] 
+    data = data_file_path.split('/')[-1] 
     q_min = json_variables['qmin']
     q_max = json_variables['qmax']
     nrebin = json_variables['nrebin'] # max number of points to rebin data to
@@ -31,22 +30,6 @@ if __name__=='__main__':
     noextracalc = json_variables['noextracalc'] # number of extra calculations
     transformation = json_variables['transform'] # transformation method
     folder = json_variables['_base_directory'] # output folder dir
-
-    ## messaging
-    d = genapp(json_variables)
-    
-    ## fortran77 bug: cannot use long file names
-    if len(prefix)>48:
-        d.udpmessage({"_textarea":"-----------------------------------------------------------------------------------------\n"})
-        d.udpmessage({"_textarea":"Warning:\n"})
-        d.udpmessage({"_textarea":"long data name (>48 characters). Too much for Fortran77. renaming before running bift\n"})
-        d.udpmessage({"_textarea":"filename used by bift fotran77 code: data_name_too_long_for_fortran77.dat\n"})
-        d.udpmessage({"_textarea":"this will not affect the result, but the new name appears in the input file: inputfile.dat\n"})
-        d.udpmessage({"_textarea":"------------------------------------------------------------------------------------------\n\n"})
-        data = 'data_name_too_long_for_fortran77.dat'
-        os.system('cp %s %s/%s' % (data_file_path,folder,data))
-    else:
-        data = prefix
 
     ## read checkboxes and related input
     # the Json input for checkboxes only exists if boxes are checked
@@ -82,18 +65,6 @@ if __name__=='__main__':
     except:
         rescale = 'C'
         nbin = '10'
-    try:
-        dummy = json_variables['logx']
-        logx = 1
-    except:
-        logx = 0
-    try:
-        dummy = json_variables['make_pr_bin']
-        make_pr_bin = 1
-        pr_binsize = float(json_variables['pr_binsize']) # binsize in pr_bin - p(r) interpolated on new r grid
-        units = json_variables['units']
-    except:
-        make_pr_bin = 0
 
     ## make input file with Json input for running bift
     f = open("inputfile.dat",'w')
@@ -118,6 +89,9 @@ if __name__=='__main__':
         f.write('\n')
     f.write('\n')
     f.close()
+
+    ## messaging
+    d = genapp(json_variables)
 
     ## check q range
     try:
@@ -166,10 +140,9 @@ if __name__=='__main__':
                     out_line = '%s\n' % nline_latin
                     d.udpmessage({"_textarea": out_line})
                 f.write(out_line)
-
+    
     f = open('stdout.dat','w')
-    path = os.path.dirname(os.path.realpath(__file__))
-    os.system('cp %s/source/p_table.dat %s' % (path,folder)) # copy cormap pvalue table to folder (for bift to read)
+    path = os.path.dirname(os.path.realpath(__file__)) 
     execute([path + '/source/bift','<','inputfile.dat'],f)
     f.close()
 
@@ -220,16 +193,6 @@ if __name__=='__main__':
             assessment = assessment[1:] #remove space before the word
         if 'Correction factor          :' in line:
             beta = float(line.split(':')[1])
-        if 'Longest run                :' in line:
-            Rmax = float(line.split(':')[1])
-        if 'Prob., longest run (cormap):' in line:
-            p_Rmax = float(line.split(':')[1])
-            if p_Rmax == 0.0:
-                p_Rmax_str = '< 1e-4'
-            else:
-                p_Rmax_str = '%1.2e' % p_Rmax
-        if 'Number of runs             :' in line:
-            NR = float(line.split(':')[1])
         line = f.readline()
     f.close()
 
@@ -239,43 +202,21 @@ if __name__=='__main__':
     
     ## import p(r)
     r,pr,d_pr = np.genfromtxt('pr.dat',skip_header=0,usecols=[0,1,2],unpack=True)
-   
-    if make_pr_bin:
-        ## intepolate pr on grid with binsize of pr_binsize
-        if units == 'nm':
-            pr_binsize /= 10
-        r_bin = np.arange(0,r[-1],pr_binsize)
-        pr_bin = np.interp(r_bin,r,pr)
-        n = len(r)/len(r_bin) 
-        pr_bin_max = np.interp(r_bin,r,pr+d_pr)
-        pr_bin_min = np.interp(r_bin,r,pr-d_pr)
-        d_pr_bin = ((pr_bin_max-pr_bin_min)/2)/np.sqrt(n)
-        with open('pr_bin.dat','w') as f:
-            for x,y,z in zip(r_bin,pr_bin,d_pr_bin):
-                f.write('%10.10f %10.10e %10.10e\n' % (x,y,z))
 
     ## import data and fit
     qdat,Idat,sigma = np.genfromtxt('data.dat',skip_header=0,usecols=[0,1,2],unpack=True)
     sigma_rs = np.genfromtxt('rescale.dat',skip_header=3,usecols=[2],unpack=True)
     qfit,Ifit = np.genfromtxt('fit.dat',skip_header=1,usecols=[0,1],unpack=True)
     
-    ## interpolate fit on q-values from data
-    Ifit_interp = np.interp(qdat,qfit,Ifit)
-    with open('fit_q.dat','w') as f:
-        for x,y in zip(qdat,Ifit_interp):
-            f.write('%10.10f %10.10f\n' % (x,y))
-
     ## calculate residuals
+    Ifit_interp = np.interp(qdat,qfit,Ifit)
     R = (Idat-Ifit_interp)/sigma
     maxR = np.ceil(np.amax(abs(R)))
     R_rs = (Idat-Ifit_interp)/sigma_rs
     maxR_rs = np.ceil(np.amax(abs(R_rs)))
 
     ## plot p(r)
-    plt.errorbar(r,pr,yerr=d_pr,marker='.',markersize=markersize,linewidth=linewidth,color='black',label='p(r)')
-    if make_pr_bin:
-        plt.errorbar(r_bin,pr_bin,d_pr_bin,marker='.',markersize=markersize,linewidth=linewidth,color='green',label='p(r), fixed binsize')
-        plt.legend(frameon=False)
+    plt.errorbar(r,pr,yerr=d_pr,marker='.',markersize=markersize,linewidth=linewidth,color='black')
     plt.xlabel(r'$r$')
     plt.ylabel(r'$p(r)$')
     plt.title('p(r)')
@@ -285,22 +226,15 @@ if __name__=='__main__':
     ## plot data, fit and residuals, not rescaled 
     f,(p0,p1) = plt.subplots(2,1,gridspec_kw={'height_ratios': [4,1]},sharex=True)
     p0.errorbar(qdat,Idat,yerr=sigma,linestyle='none',marker='.',markersize=markersize,color='red',zorder=0,label='data')
-    if logx:
-        p0.set_xscale('log')
-        p0.plot(qdat,Ifit_interp,color='black',linewidth=linewidth,label='fit')
-    else:
-        p0.plot(qfit,Ifit,color='black',linewidth=linewidth,zorder=1,label='fit') 
+    p0.plot(qfit,Ifit,color='black',linewidth=linewidth,zorder=1,label='fit') 
+    #p0.plot(qdat,Ifit_interp,color='green',linewidth=linewidth,label='fit_interp') 
     p0.set_ylabel(r'$I(q)$')
     p0.set_yscale('log')
     p0.set_title('fit to data')
     p0.legend(frameon=False)
-
+    
     p1.plot(qdat,R,linestyle='none',marker='.',markersize=markersize,color='red',zorder=0)
-    if logx:
-        p1.set_xscale('log')
-        p1.plot(qdat,Idat*0,linewidth=linewidth,color='black',zorder=1)
-    else:
-        p1.plot(qfit,Ifit*0,linewidth=linewidth,color='black',zorder=1)
+    p1.plot(qfit,Ifit*0,linewidth=linewidth,color='black',zorder=1)
     p1.set_xlabel(r'$q$')
     p1.set_ylabel(r'$I(q)/\sigma$')
     try:
@@ -316,7 +250,7 @@ if __name__=='__main__':
     plt.close()
 
     ## import and plot data with rescaled errors
-    qresc,Iresc,sigmaresc = np.genfromtxt('rescale.dat',skip_header=2,usecols=[0,1,2],unpack=True)
+    qresc,Iresc,sigmaresc = np.genfromtxt('rescale.d',skip_header=2,usecols=[0,1,2],unpack=True)
     offset = 10
     plt.errorbar(qdat,Idat,yerr=sigma,linestyle='none',marker='.',markersize=markersize,color='red',label='data',zorder=0)
     plt.errorbar(qresc,Iresc*offset,yerr=sigmaresc*offset,linestyle='none',marker='.',markersize=markersize,color='blue',label='data with rescaled errors, offset x10',zorder=1) 
@@ -328,30 +262,20 @@ if __name__=='__main__':
     else:
         plt.title('input data and data with errors rescaled by a factor %1.2f' % beta)
     plt.legend(frameon=False)
-    if logx:
-        plt.xscale('log')
     plt.savefig('rescale.png',dpi=200)
     plt.close()
 
     ## plot data, fit and residuals, rescaled
     f,(p0,p1) = plt.subplots(2,1,gridspec_kw={'height_ratios': [4,1]},sharex=True)
     p0.errorbar(qdat,Idat,yerr=sigma_rs,linestyle='none',marker='.',markersize=markersize,color='blue',zorder=0,label='data with rescaled errors')
-    if logx:
-        p0.set_xscale('log')
-        p0.plot(qdat,Ifit_interp,color='black',linewidth=linewidth,zorder=1,label='fit')
-    else:
-        p0.plot(qfit,Ifit,color='black',linewidth=linewidth,zorder=1,label='fit')
+    p0.plot(qfit,Ifit,color='black',linewidth=linewidth,zorder=1,label='fit')
     p0.set_ylabel(r'$I(q)$')
     p0.set_yscale('log')
     p0.set_title('fit to data with rescaled errors')
     p0.legend(frameon=False)
 
     p1.plot(qdat,R_rs,linestyle='none',marker='.',markersize=markersize,color='blue',zorder=0)
-    if logx:
-        p1.set_xscale('log')
-        p1.plot(qdat,Idat*0,linewidth=linewidth,color='black',zorder=1)
-    else:
-        p1.plot(qfit,Ifit*0,linewidth=linewidth,color='black',zorder=1)
+    p1.plot(qfit,Ifit*0,linewidth=linewidth,color='black',zorder=1)
     p1.set_xlabel(r'$q$')
     p1.set_ylabel(r'$I(q)/\sigma_\mathrm{rescale}$')
     try:
@@ -369,29 +293,26 @@ if __name__=='__main__':
     os.system('cp %s/source/bift.f %s' % (path,folder))
 
     ## compress output files to zip file
-    os.system('zip results_%s.zip pr.dat pr_bin.dat data.dat fit.dat fit_q.dat parameters.dat rescale.dat scale_factor.dat stdout.dat p_table.dat bift.f inputfile.dat *.png' % prefix)
+    os.system('zip results.zip pr.d data.d fit.d parameters.d rescale.d scale_factor.d stdout.d bift.f inputfile.d *.png')
 
     ## generate output
     output = {} # create an empty python dictionary
     
     # files
-    output["pr"] = "%s/pr.dat" % folder
-    output["pr_bin"] = "%s/pr_bin.dat" % folder
-    output["dataused"] = "%s/data.dat" % folder
-    output["rescaled"] = "%s/rescale.dat" % folder
-    output["scale_factor"] = "%s/scale_factor.dat" % folder
-    output["fitofdata"] = "%s/fit.dat" % folder
-    output["fit_q"] = "%s/fit_q.dat" % folder
-    output["parameters"] = "%s/parameters.dat" % folder
-    output["file_stdout"] = "%s/stdout.dat" % folder
-    output["p_table"] = "%s/p_table.dat" % folder
+    output["pr"] = "%s/pr.d" % folder
+    output["dataused"] = "%s/data.d" % folder
+    output["rescaled"] = "%s/rescale.d" % folder
+    output["scale_factor"] = "%s/scale_factor.d" % folder
+    output["fitofdata"] = "%s/fit.d" % folder
+    output["parameters"] = "%s/parameters.d" % folder
+    output["file_stdout"] = "%s/stdout.d" % folder
     output["sourcecode"] = "%s/bift.f" % folder
-    output["inputfile"] = "%s/inputfile.dat" % folder
+    output["inputfile"] = "%s/inputfile.d" % folder
     output["prfig"] = "%s/pr.png" % folder
     output["iqfig"] = "%s/Iq.png" % folder
     output["rescalefig"] = "%s/rescale.png" % folder
     output["iqrsfig"] = "%s/Iq_rs.png" % folder
-    output["zip"] = "%s/results_%s.zip" % (folder,prefix)
+    output["zip"] = "%s/results.zip" % folder
 
     # values
     output["dmaxout"] = "%1.2f" % dmax
@@ -404,17 +325,13 @@ if __name__=='__main__':
     output["prob"] = "%s" % Prob_str
     output["assess"] = "%s" % assessment
     if rescale == 'N':
-        output["beta"] = "see scale_factor.dat"
+        output["beta"] = "see scale_factor.d"
     elif rescale == 'C':
         output["beta"] = "%1.2f" % beta 
     
-    output["Rmax"] = "%1.2f" % Rmax
-    output["p_Rmax"] = "%s" % p_Rmax_str
-    output["NR"] = "%1.2f" % NR
-
     output["Ng"] = "%1.2f" % Ng
     output["shannon"] = "%1.2f" % Ns
-#    output["shannon_0"] = "%1.2f" % Ns_0 
+    
     output["logalpha"] = "%1.2f" % alpha 
     output["evidence"] = "%1.2f" % evidence
 #    output["axratio_pro"] = "%1.2f" % ax_pro

@@ -64,7 +64,7 @@
             ,"id"         : "fitbackground"
             ,"label"      : "Fit background"
             ,"type"       : "checkbox"
-	    ,"checked"     : "true"
+	    ,"checked"    : "true"
             ,"help"       : "A flat background is fitted to the data (highly recommended)."
         }
         ,{
@@ -105,10 +105,10 @@
             ,"id"         : "prpoints"
             ,"label"      : "Number of points in p(r)"
             ,"type"       : "integer"
-            ,"min"        : 10
+            ,"min"        : 20
             ,"default"    : 70
-            ,"max"        : 100
-            ,"help"       : "<p>Optionally enter the number of points in the estimated function p(r): more points increase the cpu-time.</p><p>Default: 70, Maximum 100</p>"
+            ,"max"        : 500
+            ,"help"       : "<p>Optionally enter the number of points in the estimated function p(r): more points increase the cpu-time.</p><p>Default: 70, Minimum 20, Maximum 500</p>"
         }
         ,{
             "role"       : "input"
@@ -224,6 +224,43 @@
             ,"repeat"     : "nonconstantrescale"
             ,"help"       : "<p>Minimum bin size of one Shannon bin.</p><p>See Larsen and Pedersen 2021 [6]</p>"
         }
+	,{
+            "role"       : "input"
+            ,"id"         : "logx"
+            ,"label"      : "Plot data log q (default: lin q)"
+            ,"type"       : "checkbox"
+            ,"help"       : "Plot data and fits on logarithmic q scale (default is linear q scale)"
+        }
+	,{
+            "role"       : "input"
+            ,"id"         : "make_pr_bin"
+            ,"label"      : "Make p(r) with fixed binsize"
+            ,"type"       : "checkbox"
+	    ,"checked"    : "false"
+            ,"repeater"   : "true"
+            ,"help"       : "<p>Output pr (pr_bin.dat) interpolated on grid with fixed binsize (default = 1 A)</p></p><p>OBS: Ensure you have enough number of points in p(r) (set above, default is 70).</p>"
+        }
+	,{
+            "role"       : "input"
+            ,"id"         : "units"
+            ,"label"      : "Units in data (A or nm)"
+	    ,"type"       : "listbox"
+	    ,"values"     : "A (default)~A~nm~nm"
+            ,"repeat"     : "make_pr_bin"
+            ,"help"       : "<p>Units of data, A or nm (default: A)</p>used to set the binsize correctly in pr_bin.dat</p>"
+        }
+	,{
+            "role"       : "input"
+            ,"id"         : "pr_binsize"
+            ,"label"      : "Set binsize (in A)"
+            ,"type"       : "float"
+	    ,"default"    : 1
+            ,"min"        : 0.01
+            ,"max"        : 10
+	    ,"step"       : 0.1
+	    ,"repeat"     : "make_pr_bin"
+            ,"help"       : "<p>Output pr (pr_bin.dat) interpolated on grid with this binsize (default = 1 A)</p>default is 1, min is 0.01 and max is 10.</p><p>OBS: Ensure you have enough number of points in p(r) (set above, default is 70).</p>"
+        }
         ,{
             "role"       : "output"
             ,"id"         : "hroutput"
@@ -236,7 +273,14 @@
             ,"id"         : "pr"
             ,"label"      : "p(r)"
             ,"type"       : "file"
-            ,"help"       : "The produced P(r) file"
+            ,"help"       : "The produced p(r) file"
+        }
+	,{
+            "role"       : "output"
+            ,"id"         : "pr_bin"
+            ,"label"      : "p(r) with fixed bin size (if selected)"
+            ,"type"       : "file"
+            ,"help"       : "The produced p(r) file, interpolated on grid with user-defined binsize."
         }
         ,{
             "role"       : "output"
@@ -244,6 +288,13 @@
             ,"label"      : "Fit of data"
             ,"type"       : "file"
             ,"help"       : "The fit of the data"
+        }
+	,{
+            "role"       : "output"
+            ,"id"         : "fit_q"
+            ,"label"      : "Fit, same q-scale as data"
+            ,"type"       : "file"
+            ,"help"       : "The fit of the data, interpolated onto the same q-scale as the data."
         }
         ,{
             "role"       : "output"
@@ -286,6 +337,13 @@
             ,"label"      : "Source code"
             ,"type"       : "file"
             ,"help"       : "Source code (needs to be compiled)"
+        }
+	,{
+            "role"       : "output"
+            ,"id"         : "p_table"
+            ,"label"      : "Table of p-values for Longest run test"
+            ,"type"       : "file"
+            ,"help"       : "Used by the source code, bift.f, when calculating cormap p-values."
         }
         ,{
             "role"       : "output"
@@ -384,6 +442,34 @@
             ,"label"      : "Correction factor for errors"
             ,"type"       : "text"
 	    ,"help"       : "<p>Constant rescaling (default): a constant was used to rescale errors in rescale.d, by:</p><p> sigma_rescaled = c*sigma, where c = sqrt(Chi2r)</p><p>Non-constant rescaling: q-dependent factors were used to rescale errors in rescale.d (indepent in each Shannon-bin):</p><p>sigma_rescaled_bin = c_bin*sigma, where c_bin = sqrt(Chi2r_bin)</p><p>See Larsen and Pedersen 2021 [6]</p>"
+        }
+	,{
+            "role"       : "output"
+            ,"id"         : "label_run"
+            ,"label"      : "<hr>Runs tests <hr>"
+            ,"type"       : "label"
+            ,"colspan"    : 2
+        }
+        ,{
+            "role"       : "output"
+            ,"id"         : "Rmax"
+            ,"label"      : "Longest run"
+            ,"type"       : "text"
+            ,"help"       : "Longest run of model values being above or below corresponding data. Pairwize Cormap test. Franke et al 2015, Nature Methods 12: 419-422. OBS: parameters are averages of all solutions, weighted with probability, therefore this number is not an integer."
+        }
+        ,{
+            "role"       : "output"
+            ,"id"         : "p_Rmax"
+            ,"label"      : "Probability getting longest run or larger"
+            ,"type"       : "text"
+            ,"help"       : "Probability getting a run of Rmax (see above) or larger, given the number of data points and that model and data come from the same distribution. Pairwize Cormap test. Franke et al 2015, Nature Methods 12: 419-422. The nearest integer of the Longest run was used for the probability calculation."
+        }
+	,{
+            "role"       : "output"
+            ,"id"         : "NR"
+            ,"label"      : "Number of runs"
+            ,"type"       : "text"
+            ,"help"       : "Number of runs when comparing model and data. Wald-Wolfowitz runs test. OBS: parameters are averages of all solutions, weighted with probability, therefore this number is not an integer."
         }
 	,{
             "role"       : "output"

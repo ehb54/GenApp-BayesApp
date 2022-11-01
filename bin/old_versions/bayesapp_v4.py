@@ -19,8 +19,7 @@ if __name__=='__main__':
 
     ## read Json input
     data_file_path = json_variables['datafile'][0] # name of datafile
-    #data = data_file_path.split('/')[-1] 
-    prefix = data_file_path.split('/')[-1] 
+    data = data_file_path.split('/')[-1] 
     q_min = json_variables['qmin']
     q_max = json_variables['qmax']
     nrebin = json_variables['nrebin'] # max number of points to rebin data to
@@ -31,22 +30,6 @@ if __name__=='__main__':
     noextracalc = json_variables['noextracalc'] # number of extra calculations
     transformation = json_variables['transform'] # transformation method
     folder = json_variables['_base_directory'] # output folder dir
-
-    ## messaging
-    d = genapp(json_variables)
-    
-    ## fortran77 bug: cannot use long file names
-    if len(prefix)>48:
-        d.udpmessage({"_textarea":"-----------------------------------------------------------------------------------------\n"})
-        d.udpmessage({"_textarea":"Warning:\n"})
-        d.udpmessage({"_textarea":"long data name (>48 characters). Too much for Fortran77. renaming before running bift\n"})
-        d.udpmessage({"_textarea":"filename used by bift fotran77 code: data_name_too_long_for_fortran77.dat\n"})
-        d.udpmessage({"_textarea":"this will not affect the result, but the new name appears in the input file: inputfile.dat\n"})
-        d.udpmessage({"_textarea":"------------------------------------------------------------------------------------------\n\n"})
-        data = 'data_name_too_long_for_fortran77.dat'
-        os.system('cp %s %s/%s' % (data_file_path,folder,data))
-    else:
-        data = prefix
 
     ## read checkboxes and related input
     # the Json input for checkboxes only exists if boxes are checked
@@ -87,13 +70,6 @@ if __name__=='__main__':
         logx = 1
     except:
         logx = 0
-    try:
-        dummy = json_variables['make_pr_bin']
-        make_pr_bin = 1
-        pr_binsize = float(json_variables['pr_binsize']) # binsize in pr_bin - p(r) interpolated on new r grid
-        units = json_variables['units']
-    except:
-        make_pr_bin = 0
 
     ## make input file with Json input for running bift
     f = open("inputfile.dat",'w')
@@ -118,6 +94,9 @@ if __name__=='__main__':
         f.write('\n')
     f.write('\n')
     f.close()
+
+    ## messaging
+    d = genapp(json_variables)
 
     ## check q range
     try:
@@ -239,43 +218,21 @@ if __name__=='__main__':
     
     ## import p(r)
     r,pr,d_pr = np.genfromtxt('pr.dat',skip_header=0,usecols=[0,1,2],unpack=True)
-   
-    if make_pr_bin:
-        ## intepolate pr on grid with binsize of pr_binsize
-        if units == 'nm':
-            pr_binsize /= 10
-        r_bin = np.arange(0,r[-1],pr_binsize)
-        pr_bin = np.interp(r_bin,r,pr)
-        n = len(r)/len(r_bin) 
-        pr_bin_max = np.interp(r_bin,r,pr+d_pr)
-        pr_bin_min = np.interp(r_bin,r,pr-d_pr)
-        d_pr_bin = ((pr_bin_max-pr_bin_min)/2)/np.sqrt(n)
-        with open('pr_bin.dat','w') as f:
-            for x,y,z in zip(r_bin,pr_bin,d_pr_bin):
-                f.write('%10.10f %10.10e %10.10e\n' % (x,y,z))
 
     ## import data and fit
     qdat,Idat,sigma = np.genfromtxt('data.dat',skip_header=0,usecols=[0,1,2],unpack=True)
     sigma_rs = np.genfromtxt('rescale.dat',skip_header=3,usecols=[2],unpack=True)
     qfit,Ifit = np.genfromtxt('fit.dat',skip_header=1,usecols=[0,1],unpack=True)
     
-    ## interpolate fit on q-values from data
-    Ifit_interp = np.interp(qdat,qfit,Ifit)
-    with open('fit_q.dat','w') as f:
-        for x,y in zip(qdat,Ifit_interp):
-            f.write('%10.10f %10.10f\n' % (x,y))
-
     ## calculate residuals
+    Ifit_interp = np.interp(qdat,qfit,Ifit)
     R = (Idat-Ifit_interp)/sigma
     maxR = np.ceil(np.amax(abs(R)))
     R_rs = (Idat-Ifit_interp)/sigma_rs
     maxR_rs = np.ceil(np.amax(abs(R_rs)))
 
     ## plot p(r)
-    plt.errorbar(r,pr,yerr=d_pr,marker='.',markersize=markersize,linewidth=linewidth,color='black',label='p(r)')
-    if make_pr_bin:
-        plt.errorbar(r_bin,pr_bin,d_pr_bin,marker='.',markersize=markersize,linewidth=linewidth,color='green',label='p(r), fixed binsize')
-        plt.legend(frameon=False)
+    plt.errorbar(r,pr,yerr=d_pr,marker='.',markersize=markersize,linewidth=linewidth,color='black')
     plt.xlabel(r'$r$')
     plt.ylabel(r'$p(r)$')
     plt.title('p(r)')
@@ -369,19 +326,17 @@ if __name__=='__main__':
     os.system('cp %s/source/bift.f %s' % (path,folder))
 
     ## compress output files to zip file
-    os.system('zip results_%s.zip pr.dat pr_bin.dat data.dat fit.dat fit_q.dat parameters.dat rescale.dat scale_factor.dat stdout.dat p_table.dat bift.f inputfile.dat *.png' % prefix)
+    os.system('zip results_%s.zip pr.dat data.dat fit.dat parameters.dat rescale.dat scale_factor.dat stdout.dat p_table.dat bift.f inputfile.dat *.png' % data)
 
     ## generate output
     output = {} # create an empty python dictionary
     
     # files
     output["pr"] = "%s/pr.dat" % folder
-    output["pr_bin"] = "%s/pr_bin.dat" % folder
     output["dataused"] = "%s/data.dat" % folder
     output["rescaled"] = "%s/rescale.dat" % folder
     output["scale_factor"] = "%s/scale_factor.dat" % folder
     output["fitofdata"] = "%s/fit.dat" % folder
-    output["fit_q"] = "%s/fit_q.dat" % folder
     output["parameters"] = "%s/parameters.dat" % folder
     output["file_stdout"] = "%s/stdout.dat" % folder
     output["p_table"] = "%s/p_table.dat" % folder
@@ -391,7 +346,7 @@ if __name__=='__main__':
     output["iqfig"] = "%s/Iq.png" % folder
     output["rescalefig"] = "%s/rescale.png" % folder
     output["iqrsfig"] = "%s/Iq_rs.png" % folder
-    output["zip"] = "%s/results_%s.zip" % (folder,prefix)
+    output["zip"] = "%s/results_%s.zip" % (folder,data)
 
     # values
     output["dmaxout"] = "%1.2f" % dmax

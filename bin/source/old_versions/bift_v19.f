@@ -93,8 +93,6 @@ C*******************************************************************************
       real sigma(0:nmax),sigf(0:nmax),ntott(ndist),I0(ndist),int(NMAX)
       real ftot(0:nmax,ndist),prob(ndist),xmean(0:nmax),qmin,qmax
       real factor(100),fmdec(nmax)
-c      real ptable(10001,26),prow(26)
-      real prow(26)
       integer ptot,ir,clock,clockold
       CHARACTER*48 ANAME
       character*12 redaname
@@ -693,15 +691,11 @@ c      write(36,*)
  6669 write(6,*)'                                          '
       write(6,*)'                                          '
       if(answer7.eq.'Y') then
-c      write(6,*)' ite   diam  log(alpha)    chi    axratio    check  
-c     -backg   -evidence'
-      write(6,*)' ite   diam  log(alpha)    chi    run_max   axratio
-     -check    backg   -evidence'
+      write(6,*)' ite   diam  log(alpha)    chi    axratio    check  
+     -backg   -evidence'
       else
-c      write(6,*)' ite   diam  log(alpha)    chi    axratio    check  
-c     - eta   -evidence'
-      write(6,*)' ite   diam  log(alpha)    chi    run_max   axratio
-     - check   eta   -evidence'
+      write(6,*)' ite   diam  log(alpha)    chi    axratio    check  
+     - eta   -evidence'
       endif
       write(6,*)
  6670 format(a)
@@ -841,16 +835,11 @@ cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
       write(6,*)'                                          '
       if(answer7.eq.'Y') then
-c      write(6,*)' ite   diam  log(alpha)    chi    axratio    check  
-c     -backg   -evidence'
-c      else
-c      write(6,*)' ite   diam  log(alpha)    chi    axratio    check  
-c     - eta   -evidence'
-      write(6,*)' ite   diam  log(alpha)    chi    run_max    axratio 
-     -check    backg   -evidence'
+      write(6,*)' ite   diam  log(alpha)    chi    axratio    check  
+     -backg   -evidence'
       else
-      write(6,*)' ite   diam  log(alpha)    chi    run_max    axratio
-     - check    eta   -evidence'
+      write(6,*)' ite   diam  log(alpha)    chi    axratio    check  
+     - eta   -evidence'
       endif
       write(6,*)'                                          '
  6667 nofmax=nof-1
@@ -1231,12 +1220,7 @@ c******************************************************
 c     Output of parameters
 c******************************************************
       dmax=0
-c chi-square average
       cav=0
-c runmax average
-      runmaxav=0
-c runtotal averate
-      runtotav=0
       fm1=0
       etaav=0
       eta=0
@@ -1264,8 +1248,6 @@ c runtotal averate
       eta=eta+ftot(nmax-10,nof)*prob(nof)
       rtio=rtio+ftot(nmax-11,nof)*prob(nof)
       sumng=sumng+ftot(nmax-12,nof)*prob(nof)
-      runmaxav=runmaxav+ftot(nmax-14,nof)*prob(nof)
-      runtotav=runtotav+ftot(nmax-15,nof)*prob(nof)
 c      write(155,*)nof,ftot(nmax-12,nof),prob(nof)
  1132 continue
       
@@ -1426,7 +1408,7 @@ c     -f6.3,1x,f8.3,1x,f6.3,1x,f6.2,1x,f7.3,1X,f9.2)
      -(f6.2,F5.2,F5.2,1X,e8.2,1x,f7.3,1x,
      -f8.3,1x,f6.3,1x,f6.2,1x,e8.3,1X,f9.2)
 c*********************************************
-c     Calculate chi2r p-value
+c     Calculate p-value
 c*********************************************
       DoF=mtotxx-sumng-1.
       chi2=cav*mtotxx
@@ -1437,65 +1419,6 @@ c*********************************************
       else
         pval=2.*pval2
       endif
-c*********************************************
-c     Calculate max_run p-value (cormap)
-c*********************************************
-c      sumpart=0
-c      sumtot=0
-c      istart = nint(runmaxav)
-c      istart = 5
-c      do 998 i = 1,mtotxx
-c      do 998 i = 1,20
-c      sumtot=sumtot+probbi(mtotxx,i)
-c      if(i.ge.istart) then
-c      if(i.ge.10) then
-c      sumpart=sumpart+probbi(mtotxx,i)
-c      endif
-c 998  CONTINUE 
-c      pval_runmax=sumpart/sumtot
-c      pval_runmax=bico(50,10)
-c      INTEGER runmaxint
-c      INTEGER runmaxinteger
-c      pval_runmax=probnr(mtotxx,runmaxint) 
-c      pval_runmax=probnr(6,3)
-c       CALL SUB1(anr,Ndata,runmax,DUMSUB)
-c      EXTERNAL SUB1
-c      CALL SUB1(pval_runmax,6,3,SUB1)
-c      runmaxint=nint(runmaxav)
-      nrunmaxav=nint(runmaxav)
-c      CALL SUB1(pval_runmax,mtotxx,nrunmaxav,SUB1)
-c      CALL SUB1(anr,25,4,SUB1)
-c      pval_runmax=anr/2**25
-c      pval_runmax=probnr(mtotxx,nrunmaxav)
-c      pval_runmax=probnr(10,3)
-c      ncols=nrunmaxav-1
-c      nrows=mtotxx-1
-c      ncols=10
-c      nrows=4
-      open(unit=137,file='p_table.dat',status='old')
-c      DO 152 i=1,26
-      DO 151 j=1,mtotxx+1
-c      read(137,*)p_tmp1,p_tmp2,p_tmp3
-      read(137,*)prow
-c      read(137,*)ptable(j,:)
-c     include -1 because of 0-indexing in table.
-c      ptable(j-1,i-1)=p_tmp
-c      write(6,*)p_tmp1,p_tmp2,p_tmp3
-c      write(6,*)ptable(j,:)
-  151 CONTINUE
-c  152 CONTINUE
-      close(137)
-c      write(6,*)prow
-      if (nrunmaxav.gt.25) then
-        pval_runmax=0.0
-      else
-        pval_runmax=prow(nrunmaxav+1)
-      endif
-c      pval_runmax=ptable(mtotxx,nrunmaxav)
-c*********************************************
-c     Calculate total number of runs p-value
-c*********************************************
-c      pval_runtot=0.5
 c*********************************************
 c     Correct errors
 c*********************************************
@@ -1677,18 +1600,6 @@ c  978 format(1x,'Number of Shannon channels, qrange*(dmax/pi): ',f9.2)
   980 format(1x,'The exp errors are probably: ',a)
       write(166,981)sqrt(chi2r)
   981 format(1x,'Correction factor          : ',f9.2)
-      write(166,982)runmaxav
-  982 format(1x,'Longest run                : ',f9.2)
-c      write(166,984)sumpart
-c  984 format(1x,'Prob., longest run (cormap): ',e9.4)
-c      write(166,988)sumtot 
-c  988 format(1x,'Prob., longest run (cormap): ',e9.4)
-      write(166,989)pval_runmax
-  989 format(1x,'Prob., longest run (cormap): ',e9.4)
-      write(166,985)runtotav
-  985 format(1x,'Number of runs             : ',f9.2)
-c      write(166,987)pval_runtot
-c  987 format(1x,'Prob.,  number of run      : ',e9.2)
       write(166,*)
       call system_clock(clock)
       cpu=(clock-clockold)*0.001
@@ -1736,15 +1647,9 @@ c      close(137)
   917 FORMAT(1X,'Scale factor(s) in    :  ',A)
       WRITE(6,919)'parameters.dat'
   919 FORMAT(1X,'Parameters in         :  ',A)
-      WRITE(6,920)runmaxav
-  920 FORMAT(1X,'Longest run Rmax      :  ',f9.1)
-      WRITE(6,921)pval_runmax
-  921 FORMAT(1X,'prob of R>=Rmax       :  ',e9.4) 
-      WRITE(6,922)runtotav
-  922 FORMAT(1X,'Number of runs        :  ',f9.1)     
       write(6,*)
       write(6,947)cpu
-  947 format(1x,'CPU time used         :  ',f9.1,
+  947 format(1x,'CPU time used         :  ',f6.1,
      -' seconds')
       CLOSE(14)
       CLOSE(20) 
@@ -2309,10 +2214,6 @@ ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 c**************************************************************************
   110 S=0
       C=0
-      RUN=0
-      RUN_MAX=0
-      RUN_TOT=1
-      RUN_VALUE_PREV=0
       GRADSI=0
       WGRADS=0
       GRADCI=0
@@ -2335,36 +2236,14 @@ c**************************************************************************
       DOTSP=DOTSP+GRADSI*GRADCI
   150 CONTINUE
 
-c loop over all data
       DO 141 I=1,MTOT
       FM(I)=0
-c loop over all solutions to get model value
       DO 140 J=jmin,NTOT+nextra
       FM(I)=FM(I)+A(I,J)*F(J)
   140 CONTINUE
-c     calculate chi2
       CADD=(Y(I)-FM(I))**2/SD(I)
       C=C+CADD
-c     calculate cormap and runs test      
-      if (Y(I).le.FM(I)) then
-      RUN_VALUE=-1
-      else
-      RUN_VALUE=1
-      endif
-
-      if (RUN_VALUE.eq.RUN_VALUE_PREV) then
-      RUN=RUN+1
-      if (RUN.ge.RUN_MAX) then
-      RUN_MAX=RUN
-      endif
-      else
-      RUN=0
-      RUN_TOT=RUN_TOT+1
-      endif
-      RUN_VALUE_PREV=RUN_VALUE
-
   141 CONTINUE
-c     calculate chi2r=chi2/M
       C=C/MTOT
 
       if((wgradc.ge.1.e30).or.(wgrads.ge.1.e30)) then
@@ -2469,7 +2348,6 @@ ccc-----------------------------------------------------
       rlogdet=rlogdet+log(abs(w(i)))  
  1822 continue
 
-c calc evidence below. alpha x S - chi2/2 - JEFFRIES PRIOR
  2228  evidence=0.5*rnorm-log(abs(dmax))+
      -(alpha*S-0.5*c*mtot)-0.5*rlogdet-log(abs(alpha))
 c for lamellar symmetry smoothness needs to be weighted more.. ???
@@ -2497,15 +2375,11 @@ c      if(dotsp.lt.xprec.and.answerm.eq.'M') evidence=-1.e10-ite*10000.
       func=evidence
 c  161 FORMAT(1X,I4,1x,f6.2,1X,f10.4,
 c     -1X,F10.4,1x,f7.3,2x,f7.4,1x,e8.1,1x,f10.1)
-c  161 FORMAT(1X,I4,1x,f7.2,1X,f10.4,
-c     -1X,F10.4,1x,f7.3,2x,f7.4,1x,e8.1,1x,f12.1)
   161 FORMAT(1X,I4,1x,f7.2,1X,f10.4,
-     -1X,F12.4,1x,f10.4,1x,f7.3,2x,f7.4,1x,e8.1,1x,f13.1)
+     -1X,F10.4,1x,f7.3,2x,f7.4,1x,e8.1,1x,f12.1)
 c  variable c below is chi2/mtot, i.e. the reduced chi-square         
-c      WRITE(6,161)ite,dmax,log(abs(ALPHA))
-c     -,c,ratio,DOTSP,alpha*s,evidence
       WRITE(6,161)ite,dmax,log(abs(ALPHA))
-     -,c,run_max,ratio,DOTSP,alpha*s,evidence
+     -,c,ratio,DOTSP,alpha*s,evidence
    
 c  180 WRITE(6,161)ite,dmax,log(abs(ALPHA))
 c     -,c,ratio,DOTSP,f(20),evidence
@@ -2542,8 +2416,7 @@ c     -,c,ratio,DOTSP,f(20),evidence
       ftot(nmax-6,nof)=S
       ftot(nmax-7,nof)=evidence
       ftot(nmax-11,nof)=ratio
-      ftot(nmax-14,nof)=run_max
-      ftot(nmax-15,nof)=run_tot
+
       nof=nof+1
       if(nof.gt.ndist) then
       write(6,*)'Error - too slow convergence => too many files'
@@ -3639,7 +3512,7 @@ c      PARAMETER (ITMAX=100000,EPS=30,FPMIN=1.e-30)
         endif
 11    continue
 c      write(6,*)'a too large, ITMAX too small in gcf'
-c      write(6,*)'very small probability for Chi2r'
+      write(6,*)'very small probability for Chi2r'
  667  gammcf=exp(-x+a*log(x)-gln)*h
       return
       END
@@ -3664,96 +3537,3 @@ c      write(6,*)'very small probability for Chi2r'
       gammln=tmp+log(stp*ser/x)
       return
       END
-
-c      FUNCTION bico(n,k)
-c      INTEGER k,n
-c      REAL bico
-cc     USES factln
-cc     Returns the binomial coefficient n k as a floating-point number.
-c      REAL factln
-c      bico=nint(exp(factln(n)-factln(k)-factln(n-k)))
-c      return
-c      END
-
-c      FUNCTION factln(n)
-c      INTEGER n
-c      REAL factln
-cc     USES gammln
-cc     Returns ln(n!).
-c      REAL a(100),gammln
-c      SAVE a
-c      DATA a/100*-1./
-cc      if (n.lt.0) pause 'negative factorial in factln?'
-c      if (n.le.99) then
-c        if (a(n+1).lt.0.) then
-c          a(n+1)=gammln(n+1.)
-c        endif
-c        factln=a(n+1)
-c      else
-c        factln=gammln(n+1.)
-c      endif
-c      return
-c      END
-
-c      FUNCTION probbi(n,k)
-cc     binomial probability when p=q=0.5
-c      INTEGER k,n
-c      REAL probbi
-c      probbi=bico(n,k)*0.5**n
-c      return
-c      END
-
-c      RECURSIVE FUNCTION funcA(n,runmax) result(anr)
-cc     Schilling distribution, from Schilling1990:
-cc     https://www.maa.org/sites/default/files/images/upload_library/22/Polya/07468342.di020742.02p0021g.pdf
-cc     n is number of data points, runmax is longest run
-c      INTEGER n,runmax
-cc     anr is number of combinations with n and runmax
-c      REAL anr
-c      if (n.le.runmax) then
-c      anr=2**n
-c      else
-c      anr=0
-c      DO 123 i=0,runmax
-c      anr=anr+funcA(n-1-i,runmax)
-c 123  CONTINUE
-c      endif
-c      return 
-c      END
-      
-c      EXTERNAL SUB1
-c      INTEGER Ndata
-c      COMMON /GLOBALS/ Ndata
-c      Ndata=mtotxx
-
-c      SUBROUTINE SUB1(anr,Ndata,runmax,DUMSUB)
-cc     Schilling distribution, from Schilling1990:
-cc     https://www.maa.org/sites/default/files/images/upload_library/22/Polya/07468342.di020742.02p0021g.pdf
-cc     n is number of data points, runmax is longest run
-c      INTEGER Ndata,runmax
-c      EXTERNAL DUMSUB
-cc     anr is number of combinations with Ndata and runmax
-c      REAL tmp,anr
-cc      write(6,*)'SUB1 call, Ndata = ',Ndata
-c      if (Ndata.le.runmax) then
-c      anr=2**Ndata
-c      else
-c      sum=0
-c      DO 123 i=0,runmax
-c      CALL DUMSUB(tmp,Ndata-1-i,runmax,DUMSUB)
-c      sum=sum+tmp
-c 123  CONTINUE
-c      anr=sum
-c      endif
-c      END
-
-c      FUNCTION PROBNR(n,runmax)
-cc     https://www.nature.com/articles/nmeth.3358#Sec2      
-c      INTEGER n,runmax
-c      real p,A
-c      CALL SUB1(A,n,runmax,SUB1)
-cc      p=1.0-A/2**n
-c      p=A
-c      return
-c      END
-

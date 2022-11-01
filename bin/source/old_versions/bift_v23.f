@@ -3639,7 +3639,7 @@ c      PARAMETER (ITMAX=100000,EPS=30,FPMIN=1.e-30)
         endif
 11    continue
 c      write(6,*)'a too large, ITMAX too small in gcf'
-c      write(6,*)'very small probability for Chi2r'
+      write(6,*)'very small probability for Chi2r'
  667  gammcf=exp(-x+a*log(x)-gln)*h
       return
       END

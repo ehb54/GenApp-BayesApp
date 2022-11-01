@@ -11,9 +11,9 @@ c                            -march=native may be left out
 c                            -m64 or -m32 may be added 
 c                            ... depending on the system
 c
-c   2) Run:                  bift < inputfile.dat                   
+c   2) Run:                  bift < inputfile.d                    
 c
-c   3) The file: inputfile.dat has to contain the 16 lines:
+c   3) The file: inputfile.d has to contain the 16 lines:
 c                                                            input format
 c   line 1:  the name of the data file     - compulsory -    [string]
 c   line 2:  q_min                         or a blank line   [float]
@@ -93,8 +93,6 @@ C*******************************************************************************
       real sigma(0:nmax),sigf(0:nmax),ntott(ndist),I0(ndist),int(NMAX)
       real ftot(0:nmax,ndist),prob(ndist),xmean(0:nmax),qmin,qmax
       real factor(100),fmdec(nmax)
-c      real ptable(10001,26),prow(26)
-      real prow(26)
       integer ptot,ir,clock,clockold
       CHARACTER*48 ANAME
       character*12 redaname
@@ -149,21 +147,21 @@ c     Name of data file and input of data
 c********************************************************************
       call system_clock(clock)
       clockold=clock
-      open(unit=555,file='inputfile.dat',status='unknown')
+      open(unit=555,file='inputfile.d',status='unknown')
     1 WRITE(6,3)
     3 FORMAT(1X,'Write name of the inputfile - format (x,y,sd)   => ',$)
     4 FORMAT(A)
       read(555,4)aname
 
-      if(aname.eq.'      ') aname='data.dat'
+      if(aname.eq.'      ') aname='data.d'
 
-      bname='pr.dat'
-      FNAME='fit.dat'        
+      bname='pr.d'
+      FNAME='fit.d'        
       GNAME='decon_'//BNAME        
       HNAME='PRIOR_'//BNAME   
       gsNAME='gs_'//BNAME   
       gxNAME='gx_'//BNAME   
-      hxname='data.dat'
+      hxname='data.d'
       sname='st_'//bname
       plname='pl'//aname
       diamname='diam_'//bname
@@ -175,10 +173,10 @@ c********************************************************************
   131 FORMAT(1X,'qmin (min 0.0001) or <enter>                    => ',$)
       read(555,4)dummy
       if(dummy.ne.'       ') then
-      open(unit=50,file='dummy.dat',status='unknown')
+      open(unit=50,file='dummy.d',status='unknown')
       write(50,4)dummy
       close(50)
-      open(unit=50,file='dummy.dat',status='unknown')
+      open(unit=50,file='dummy.d',status='unknown')
       read(50,*)qmin
       close(50)
       endif
@@ -188,10 +186,10 @@ c********************************************************************
   132 FORMAT(1X,'qmax or <enter>                                 => ',$)
       read(555,4)dummy
       if(dummy.ne.'       ') then
-      open(unit=50,file='dummy.dat',status='unknown')
+      open(unit=50,file='dummy.d',status='unknown')
       write(50,4)dummy
       close(50)
-      open(unit=50,file='dummy.dat',status='unknown')
+      open(unit=50,file='dummy.d',status='unknown')
       read(50,*)qmax
       close(50)
       endif
@@ -204,10 +202,10 @@ c default value
       nrebin=9999
       read(555,4)dummy
       if(dummy.ne.'       ') then
-      open(unit=50,file='dummy.dat',status='unknown')
+      open(unit=50,file='dummy.d',status='unknown')
       write(50,4)dummy
       close(50)
-      open(unit=50,file='dummy.dat',status='unknown')
+      open(unit=50,file='dummy.d',status='unknown')
       read(50,*)nrebin
       close(50)
       endif
@@ -215,7 +213,7 @@ c default value
 c skipping text lines in data file and writing data to dummy
 c*************************************************************
       OPEN(1,FILE=aname,STATUS='UNKNOWN')
-      open(111,file='dummy.dat',status='unknown')
+      open(111,file='dummy.d',status='unknown')
       ndata=0
       k=0
    2  if(ndata.ge.1) goto 8
@@ -228,7 +226,7 @@ c*************************************************************
       if(sd1.le.0) ndata0=0
       if((x1.lt.qmin).or.(x1.gt.qmax)) goto 22
       ndata=ndata+1
-c write data to dummy.dat (111)
+c write data to dummy.d (111)
       write(111,*)x1,y1,sd1
         if(sd1.le.0) then 
         ndata=-2
@@ -246,7 +244,7 @@ c write data to dummy.dat (111)
  6767 continue
 
       if(ndata.lt.nrebin) then
-      OPEN(1,FILE='dummy.dat',STATUS='UNKNOWN')
+      OPEN(1,FILE='dummy.d',STATUS='UNKNOWN')
       x1sum=x1
       goto 7777
       endif
@@ -263,8 +261,8 @@ c      write(6,*)'nrest=ndata-nr2*nr',nrest
 c     nr: points per bin, binsize
 c     nr2(+1): number of data points used (after rebinning)
 
-      open(111,file='dummy.dat',status='old')
-      open(44,file='dummy2.dat',status='unknown')
+      open(111,file='dummy.d',status='old')
+      open(44,file='dummy2.d',status='unknown')
 
       if(nrest.eq.0) goto 1310
       x1sum=0
@@ -308,7 +306,7 @@ c The error of the added points may also be changed to ensure that
 c S(q) -> 1 
 c Change the constraints for S(q) here:
 c****************************************************************
-      OPEN(1,FILE='dummy2.dat',STATUS='UNKNOWN')
+      OPEN(1,FILE='dummy2.d',STATUS='UNKNOWN')
  7777 close(111)
       mtot=0
       nadd=0
@@ -355,7 +353,7 @@ c********************************************************************
       write(6,*)'destnew = ',destnew
       xdest=1.0
       if(dummy.ne.'       ') then
-        open(unit=50,file='dummy.dat',status='unknown')
+        open(unit=50,file='dummy.d',status='unknown')
           if(dummy(1:1).eq.'f') dummy(1:1)='F'
           if(dummy(1:1).eq.'F') then
           xdest=0.0000001
@@ -364,7 +362,7 @@ c********************************************************************
           endif
           if(dummy(1:1).ne.'F') write(50,4)dummy
         close(50)
-      open(unit=50,file='dummy.dat',status='unknown')
+      open(unit=50,file='dummy.d',status='unknown')
       read(50,*)dest
       ndtest=1.0
       close(50)
@@ -377,7 +375,7 @@ c********************************************************************
       etaest=0
 c      fixeta=0
       if(dummy.ne.'       ') then
-        open(unit=50,file='dummy.dat',status='unknown')
+        open(unit=50,file='dummy.d',status='unknown')
 c        if(dummy(1:1).eq.'f') dummy(1:1)='F'
 c        if(dummy(1:1).eq.'F') then
 c          fixeta=1
@@ -386,7 +384,7 @@ c        endif
 c        if(dummy(1:1).ne.'F') write(50,4)dummy
         write(50,4)dummy
         close(50)
-        open(unit=50,file='dummy.dat',status='unknown')
+        open(unit=50,file='dummy.d',status='unknown')
         read(50,*)etaest
         close(50)
       endif
@@ -397,7 +395,7 @@ c        if(dummy(1:1).ne.'F') write(50,4)dummy
       alphaest=-100.
       xalphaest=1.0
       if(dummy.ne.'       ') then
-        open(unit=50,file='dummy.dat',status='unknown')
+        open(unit=50,file='dummy.d',status='unknown')
         if(dummy(1:1).eq.'f') dummy(1:1)='F'
         if(dummy(1:1).eq.'F') then
           xalphaest=0
@@ -406,7 +404,7 @@ c        if(dummy(1:1).ne.'F') write(50,4)dummy
         endif
         if(dummy(1:1).ne.'F') write(50,4)dummy
         close(50)
-        open(unit=50,file='dummy.dat',status='unknown')
+        open(unit=50,file='dummy.d',status='unknown')
         read(50,*)alphaest
         close(50)
       endif
@@ -416,10 +414,10 @@ c        if(dummy(1:1).ne.'F') write(50,4)dummy
       read(555,4)dummy
       csmear=0
       if(dummy.ne.'       ') then
-      open(unit=50,file='dummy.dat',status='unknown')
+      open(unit=50,file='dummy.d',status='unknown')
       write(50,4)dummy
       close(50)
-      open(unit=50,file='dummy.dat',status='unknown')
+      open(unit=50,file='dummy.d',status='unknown')
       read(50,*)csmear
       close(50)
       cexp=2
@@ -437,7 +435,7 @@ c        if(dummy(1:1).ne.'F') write(50,4)dummy
       xratio=1.
       if(dummy.ne.'       ') then
 
-        open(unit=50,file='dummy.dat',status='unknown')
+        open(unit=50,file='dummy.d',status='unknown')
           if(dummy(1:1).eq.'f') dummy(1:1)='F'
           if(dummy(1:1).eq.'F') then
           nratio=0
@@ -446,7 +444,7 @@ c        if(dummy(1:1).ne.'F') write(50,4)dummy
           if(dummy(1:1).ne.'F') write(50,4)dummy
         close(50)
 
-      open(unit=50,file='dummy.dat',status='unknown')
+      open(unit=50,file='dummy.d',status='unknown')
       read(50,*)ratio
       close(50)
       endif
@@ -456,10 +454,10 @@ c        if(dummy(1:1).ne.'F') write(50,4)dummy
       read(555,4)dummy
       answer='M'
       if(dummy.ne.'       ') then
-      open(unit=50,file='dummy.dat',status='unknown')
+      open(unit=50,file='dummy.d',status='unknown')
       write(50,4)dummy
       close(50)
-      open(unit=50,file='dummy.dat',status='unknown')
+      open(unit=50,file='dummy.d',status='unknown')
       read(50,4)answer
       close(50)
       endif
@@ -489,10 +487,10 @@ c  139 FORMAT(1X,'Number of points used for p(r)    (50-100)     => ',$)
 c      ntot=50
       ntot=70
       if(dummy.ne.'       ') then
-      open(unit=50,file='dummy.dat',status='unknown')
+      open(unit=50,file='dummy.d',status='unknown')
       write(50,4)dummy
       close(50)
-      open(unit=50,file='dummy.dat',status='unknown')
+      open(unit=50,file='dummy.d',status='unknown')
       read(50,*)ntot
       close(50)
       endif
@@ -508,10 +506,10 @@ c      rprec=0.05
       rprec=0.1
 c      rprec=0.0001
 c      if(dummy.ne.'       ') then
-c      open(unit=50,file='dummy.dat',status='unknown')
+c      open(unit=50,file='dummy.d',status='unknown')
 c      write(50,4)dummy
 c      close(50)
-c      open(unit=50,file='dummy.dat',status='unknown')
+c      open(unit=50,file='dummy.d',status='unknown')
 c      read(50,*)rprec
 c      close(50)
 c      endif
@@ -523,10 +521,10 @@ c      endif
       answer2='Y'
       nerror=2
       if(dummy.ne.'       ') then
-      open(unit=50,file='dummy.dat',status='unknown')
+      open(unit=50,file='dummy.d',status='unknown')
       write(50,4)dummy
       close(50)
-      open(unit=50,file='dummy.dat',status='unknown')
+      open(unit=50,file='dummy.d',status='unknown')
       read(50,*)nerror
       close(50)
       if(nerror.eq.0) answer2='N'
@@ -541,10 +539,10 @@ c      endif
       read(555,4)dummy
       answer5='D'
       if(dummy.ne.'       ') then
-      open(unit=50,file='dummy.dat',status='unknown')
+      open(unit=50,file='dummy.d',status='unknown')
       write(50,4)dummy
       close(50)
-      open(unit=50,file='dummy.dat',status='unknown')
+      open(unit=50,file='dummy.d',status='unknown')
       read(50,4)answer5
       close(50)
       endif
@@ -587,10 +585,10 @@ c ratio is fitted by evidence
       read(555,4)dummy
       answer7='Y'
       if(dummy.ne.'       ') then
-      open(unit=50,file='dummy.dat',status='unknown')
+      open(unit=50,file='dummy.d',status='unknown')
       write(50,4)dummy
       close(50)
-      open(unit=50,file='dummy.dat',status='unknown')
+      open(unit=50,file='dummy.d',status='unknown')
       read(50,4)answer7
       close(50)
       endif
@@ -607,10 +605,10 @@ c ratio is fitted by evidence
       read(555,4)dummy
       answer8='C'
       if(dummy.ne.'       ') then
-      open(unit=50,file='dummy.dat',status='unknown')
+      open(unit=50,file='dummy.d',status='unknown')
       write(50,4)dummy
       close(50)
-      open(unit=50,file='dummy.dat',status='unknown')
+      open(unit=50,file='dummy.d',status='unknown')
       read(50,4)answer8
       close(50)
       endif
@@ -623,10 +621,10 @@ c ratio is fitted by evidence
       read(555,4)dummy
       nbin=10
       if(dummy.ne.'       ') then
-      open(unit=50,file='dummy.dat',status='unknown')
+      open(unit=50,file='dummy.d',status='unknown')
       write(50,4)dummy
       close(50)
-      open(unit=50,file='dummy.dat',status='unknown')
+      open(unit=50,file='dummy.d',status='unknown')
       read(50,*)nbin
       close(50)
       endif
@@ -693,15 +691,11 @@ c      write(36,*)
  6669 write(6,*)'                                          '
       write(6,*)'                                          '
       if(answer7.eq.'Y') then
-c      write(6,*)' ite   diam  log(alpha)    chi    axratio    check  
-c     -backg   -evidence'
-      write(6,*)' ite   diam  log(alpha)    chi    run_max   axratio
-     -check    backg   -evidence'
+      write(6,*)' ite   diam  log(alpha)    chi    axratio    check  
+     -backg   -evidence'
       else
-c      write(6,*)' ite   diam  log(alpha)    chi    axratio    check  
-c     - eta   -evidence'
-      write(6,*)' ite   diam  log(alpha)    chi    run_max   axratio
-     - check   eta   -evidence'
+      write(6,*)' ite   diam  log(alpha)    chi    axratio    check  
+     - eta   -evidence'
       endif
       write(6,*)
  6670 format(a)
@@ -841,16 +835,11 @@ cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
       write(6,*)'                                          '
       if(answer7.eq.'Y') then
-c      write(6,*)' ite   diam  log(alpha)    chi    axratio    check  
-c     -backg   -evidence'
-c      else
-c      write(6,*)' ite   diam  log(alpha)    chi    axratio    check  
-c     - eta   -evidence'
-      write(6,*)' ite   diam  log(alpha)    chi    run_max    axratio 
-     -check    backg   -evidence'
+      write(6,*)' ite   diam  log(alpha)    chi    axratio    check  
+     -backg   -evidence'
       else
-      write(6,*)' ite   diam  log(alpha)    chi    run_max    axratio
-     - check    eta   -evidence'
+      write(6,*)' ite   diam  log(alpha)    chi    axratio    check  
+     - eta   -evidence'
       endif
       write(6,*)'                                          '
  6667 nofmax=nof-1
@@ -1231,12 +1220,7 @@ c******************************************************
 c     Output of parameters
 c******************************************************
       dmax=0
-c chi-square average
       cav=0
-c runmax average
-      runmaxav=0
-c runtotal averate
-      runtotav=0
       fm1=0
       etaav=0
       eta=0
@@ -1264,16 +1248,11 @@ c runtotal averate
       eta=eta+ftot(nmax-10,nof)*prob(nof)
       rtio=rtio+ftot(nmax-11,nof)*prob(nof)
       sumng=sumng+ftot(nmax-12,nof)*prob(nof)
-      runmaxav=runmaxav+ftot(nmax-14,nof)*prob(nof)
-      runtotav=runtotav+ftot(nmax-15,nof)*prob(nof)
 c      write(155,*)nof,ftot(nmax-12,nof),prob(nof)
  1132 continue
-      
-c     Number of Shannon channels
+
       sumsh=(dmax/3.14159)*rangeq
-c     First Shannon channel
-      firstsh=(dmax/3.14159)*x1xx
-          
+     
 c     error estimates
 
       sddmax=0
@@ -1326,7 +1305,7 @@ c
       dfx=dmax/ptot
       ratio=rtio
       CALL PRIOR(M,ptot,y,XF,DFX,NMAX)
-      OPEN(313,FILE='prior.dat',STATUS='UNKNOWN')
+      OPEN(313,FILE='prior.d',STATUS='UNKNOWN')
       summ=0
       write(313,*)0.,0.,0.
       do 3132 j=1,ptot
@@ -1426,7 +1405,7 @@ c     -f6.3,1x,f8.3,1x,f6.3,1x,f6.2,1x,f7.3,1X,f9.2)
      -(f6.2,F5.2,F5.2,1X,e8.2,1x,f7.3,1x,
      -f8.3,1x,f6.3,1x,f6.2,1x,e8.3,1X,f9.2)
 c*********************************************
-c     Calculate chi2r p-value
+c     Calculate p-value
 c*********************************************
       DoF=mtotxx-sumng-1.
       chi2=cav*mtotxx
@@ -1438,80 +1417,21 @@ c*********************************************
         pval=2.*pval2
       endif
 c*********************************************
-c     Calculate max_run p-value (cormap)
-c*********************************************
-c      sumpart=0
-c      sumtot=0
-c      istart = nint(runmaxav)
-c      istart = 5
-c      do 998 i = 1,mtotxx
-c      do 998 i = 1,20
-c      sumtot=sumtot+probbi(mtotxx,i)
-c      if(i.ge.istart) then
-c      if(i.ge.10) then
-c      sumpart=sumpart+probbi(mtotxx,i)
-c      endif
-c 998  CONTINUE 
-c      pval_runmax=sumpart/sumtot
-c      pval_runmax=bico(50,10)
-c      INTEGER runmaxint
-c      INTEGER runmaxinteger
-c      pval_runmax=probnr(mtotxx,runmaxint) 
-c      pval_runmax=probnr(6,3)
-c       CALL SUB1(anr,Ndata,runmax,DUMSUB)
-c      EXTERNAL SUB1
-c      CALL SUB1(pval_runmax,6,3,SUB1)
-c      runmaxint=nint(runmaxav)
-      nrunmaxav=nint(runmaxav)
-c      CALL SUB1(pval_runmax,mtotxx,nrunmaxav,SUB1)
-c      CALL SUB1(anr,25,4,SUB1)
-c      pval_runmax=anr/2**25
-c      pval_runmax=probnr(mtotxx,nrunmaxav)
-c      pval_runmax=probnr(10,3)
-c      ncols=nrunmaxav-1
-c      nrows=mtotxx-1
-c      ncols=10
-c      nrows=4
-      open(unit=137,file='p_table.dat',status='old')
-c      DO 152 i=1,26
-      DO 151 j=1,mtotxx+1
-c      read(137,*)p_tmp1,p_tmp2,p_tmp3
-      read(137,*)prow
-c      read(137,*)ptable(j,:)
-c     include -1 because of 0-indexing in table.
-c      ptable(j-1,i-1)=p_tmp
-c      write(6,*)p_tmp1,p_tmp2,p_tmp3
-c      write(6,*)ptable(j,:)
-  151 CONTINUE
-c  152 CONTINUE
-      close(137)
-c      write(6,*)prow
-      if (nrunmaxav.gt.25) then
-        pval_runmax=0.0
-      else
-        pval_runmax=prow(nrunmaxav+1)
-      endif
-c      pval_runmax=ptable(mtotxx,nrunmaxav)
-c*********************************************
-c     Calculate total number of runs p-value
-c*********************************************
-c      pval_runtot=0.5
-c*********************************************
 c     Correct errors
 c*********************************************
       chi2r=chi2/DoF
       schi2r=scav*mtotxx/DoF
       beta=sqrt(chi2r)
-      OPEN(21,FILE='rescale.dat',STATUS='UNKNOWN')
-      OPEN(22,FILE='scale_factor.dat',STATUS='UNKNOWN')
+      OPEN(21,FILE='rescale.d',STATUS='UNKNOWN')
+      OPEN(22,FILE='scale_factor.d',STATUS='UNKNOWN')
       write(21,*)'# q,I,sigma'
-      write(22,*)'# errors in rescale.dat are rescaled with factors:'
+      write(22,*)'# errors in rescale.d are rescaled with factors:'
       if(answer8.eq.'N') then
         write(21,*)'# errors rescaled with q-dependent factor'
-        write(21,*)'# see factors in scale_factor.dat'
+        write(21,*)'# see factors in scale_factor.d'
       else
         write(21,*)'# errors rescaled with constant factor: ', beta
-        write(21,*)'# factor also written to scale_factor.dat'
+        write(21,*)'# factor also written to scale_factor.d'
       endif
       n=1
       ns=1
@@ -1565,7 +1485,7 @@ c       qmax for ns'th shannon channel
 c*********************************************
 c     Start OUTPUT for download for p(r) only
 c*********************************************
-      open(unit=166,file='parameters.dat',status='unknown')
+      open(unit=166,file='parameters.d',status='unknown')
       if((answer5.eq.'D').or.(answer5.eq.'N')) then
       write(166,954)'Input file name  = ',aname
   954 format(x,a,x,a)
@@ -1656,10 +1576,7 @@ c*********************************************
   976 format(1x,'Number of good parameters  : ',f9.2,
      -'  +- ',f8.2,' ')
       write(166,978)sumsh
-c  978 format(1x,'Number of Shannon channels, qrange*(dmax/pi): ',f9.2)
   978 format(1x,'Number of Shannon channels : ',f9.2)
-      write(166,983)firstsh
-  983 format(1x,'qmin*(dmax/pi)             : ',e9.2)
       write(166,965)evimax,sevi
   965 format(1x,'Evidence at maximum        : ',e9.2,
      -'  +- ',e9.2,' ')
@@ -1677,18 +1594,6 @@ c  978 format(1x,'Number of Shannon channels, qrange*(dmax/pi): ',f9.2)
   980 format(1x,'The exp errors are probably: ',a)
       write(166,981)sqrt(chi2r)
   981 format(1x,'Correction factor          : ',f9.2)
-      write(166,982)runmaxav
-  982 format(1x,'Longest run                : ',f9.2)
-c      write(166,984)sumpart
-c  984 format(1x,'Prob., longest run (cormap): ',e9.4)
-c      write(166,988)sumtot 
-c  988 format(1x,'Prob., longest run (cormap): ',e9.4)
-      write(166,989)pval_runmax
-  989 format(1x,'Prob., longest run (cormap): ',e9.4)
-      write(166,985)runtotav
-  985 format(1x,'Number of runs             : ',f9.2)
-c      write(166,987)pval_runtot
-c  987 format(1x,'Prob.,  number of run      : ',e9.2)
       write(166,*)
       call system_clock(clock)
       cpu=(clock-clockold)*0.001
@@ -1705,7 +1610,7 @@ c     End OUTPUT for download
 c****************************************
       smear1=0.
       smear2=0.
-c      open(unit=137,file='deconout.dat',status='unknown')
+c      open(unit=137,file='deconout.d',status='unknown')
 c      write(137,*)dmax
 c      write(137,*)cav
 c      write(137,*)rtio
@@ -1730,21 +1635,15 @@ c      close(137)
   912 FORMAT(1X,'Data used in          :  ',A)
       if(etaest.ne.0) WRITE(6,910)sNAME
   910 FORMAT(1X,'Structure factor in   :  ',A)
-      WRITE(6,916)'rescale.dat'
+      WRITE(6,916)'rescale.d'
   916 FORMAT(1X,'Error-rescaled data in:  ',A)
-      WRITE(6,917)'scale_factor.dat'
+      WRITE(6,917)'scale_factor.d'
   917 FORMAT(1X,'Scale factor(s) in    :  ',A)
-      WRITE(6,919)'parameters.dat'
+      WRITE(6,919)'parameters.d'
   919 FORMAT(1X,'Parameters in         :  ',A)
-      WRITE(6,920)runmaxav
-  920 FORMAT(1X,'Longest run Rmax      :  ',f9.1)
-      WRITE(6,921)pval_runmax
-  921 FORMAT(1X,'prob of R>=Rmax       :  ',e9.4) 
-      WRITE(6,922)runtotav
-  922 FORMAT(1X,'Number of runs        :  ',f9.1)     
       write(6,*)
       write(6,947)cpu
-  947 format(1x,'CPU time used         :  ',f9.1,
+  947 format(1x,'CPU time used         :  ',f6.1,
      -' seconds')
       CLOSE(14)
       CLOSE(20) 
@@ -2309,10 +2208,6 @@ ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 c**************************************************************************
   110 S=0
       C=0
-      RUN=0
-      RUN_MAX=0
-      RUN_TOT=1
-      RUN_VALUE_PREV=0
       GRADSI=0
       WGRADS=0
       GRADCI=0
@@ -2335,36 +2230,14 @@ c**************************************************************************
       DOTSP=DOTSP+GRADSI*GRADCI
   150 CONTINUE
 
-c loop over all data
       DO 141 I=1,MTOT
       FM(I)=0
-c loop over all solutions to get model value
       DO 140 J=jmin,NTOT+nextra
       FM(I)=FM(I)+A(I,J)*F(J)
   140 CONTINUE
-c     calculate chi2
       CADD=(Y(I)-FM(I))**2/SD(I)
       C=C+CADD
-c     calculate cormap and runs test      
-      if (Y(I).le.FM(I)) then
-      RUN_VALUE=-1
-      else
-      RUN_VALUE=1
-      endif
-
-      if (RUN_VALUE.eq.RUN_VALUE_PREV) then
-      RUN=RUN+1
-      if (RUN.ge.RUN_MAX) then
-      RUN_MAX=RUN
-      endif
-      else
-      RUN=0
-      RUN_TOT=RUN_TOT+1
-      endif
-      RUN_VALUE_PREV=RUN_VALUE
-
   141 CONTINUE
-c     calculate chi2r=chi2/M
       C=C/MTOT
 
       if((wgradc.ge.1.e30).or.(wgrads.ge.1.e30)) then
@@ -2469,7 +2342,6 @@ ccc-----------------------------------------------------
       rlogdet=rlogdet+log(abs(w(i)))  
  1822 continue
 
-c calc evidence below. alpha x S - chi2/2 - JEFFRIES PRIOR
  2228  evidence=0.5*rnorm-log(abs(dmax))+
      -(alpha*S-0.5*c*mtot)-0.5*rlogdet-log(abs(alpha))
 c for lamellar symmetry smoothness needs to be weighted more.. ???
@@ -2497,15 +2369,11 @@ c      if(dotsp.lt.xprec.and.answerm.eq.'M') evidence=-1.e10-ite*10000.
       func=evidence
 c  161 FORMAT(1X,I4,1x,f6.2,1X,f10.4,
 c     -1X,F10.4,1x,f7.3,2x,f7.4,1x,e8.1,1x,f10.1)
-c  161 FORMAT(1X,I4,1x,f7.2,1X,f10.4,
-c     -1X,F10.4,1x,f7.3,2x,f7.4,1x,e8.1,1x,f12.1)
   161 FORMAT(1X,I4,1x,f7.2,1X,f10.4,
-     -1X,F12.4,1x,f10.4,1x,f7.3,2x,f7.4,1x,e8.1,1x,f13.1)
-c  variable c below is chi2/mtot, i.e. the reduced chi-square         
-c      WRITE(6,161)ite,dmax,log(abs(ALPHA))
-c     -,c,ratio,DOTSP,alpha*s,evidence
+     -1X,F10.4,1x,f7.3,2x,f7.4,1x,e8.1,1x,f12.1)
+         
       WRITE(6,161)ite,dmax,log(abs(ALPHA))
-     -,c,run_max,ratio,DOTSP,alpha*s,evidence
+     -,c,ratio,DOTSP,alpha*s,evidence
    
 c  180 WRITE(6,161)ite,dmax,log(abs(ALPHA))
 c     -,c,ratio,DOTSP,f(20),evidence
@@ -2542,8 +2410,7 @@ c     -,c,ratio,DOTSP,f(20),evidence
       ftot(nmax-6,nof)=S
       ftot(nmax-7,nof)=evidence
       ftot(nmax-11,nof)=ratio
-      ftot(nmax-14,nof)=run_max
-      ftot(nmax-15,nof)=run_tot
+
       nof=nof+1
       if(nof.gt.ndist) then
       write(6,*)'Error - too slow convergence => too many files'
@@ -3639,7 +3506,7 @@ c      PARAMETER (ITMAX=100000,EPS=30,FPMIN=1.e-30)
         endif
 11    continue
 c      write(6,*)'a too large, ITMAX too small in gcf'
-c      write(6,*)'very small probability for Chi2r'
+      write(6,*)'very small probability for Chi2r'
  667  gammcf=exp(-x+a*log(x)-gln)*h
       return
       END
@@ -3664,96 +3531,3 @@ c      write(6,*)'very small probability for Chi2r'
       gammln=tmp+log(stp*ser/x)
       return
       END
-
-c      FUNCTION bico(n,k)
-c      INTEGER k,n
-c      REAL bico
-cc     USES factln
-cc     Returns the binomial coefficient n k as a floating-point number.
-c      REAL factln
-c      bico=nint(exp(factln(n)-factln(k)-factln(n-k)))
-c      return
-c      END
-
-c      FUNCTION factln(n)
-c      INTEGER n
-c      REAL factln
-cc     USES gammln
-cc     Returns ln(n!).
-c      REAL a(100),gammln
-c      SAVE a
-c      DATA a/100*-1./
-cc      if (n.lt.0) pause 'negative factorial in factln?'
-c      if (n.le.99) then
-c        if (a(n+1).lt.0.) then
-c          a(n+1)=gammln(n+1.)
-c        endif
-c        factln=a(n+1)
-c      else
-c        factln=gammln(n+1.)
-c      endif
-c      return
-c      END
-
-c      FUNCTION probbi(n,k)
-cc     binomial probability when p=q=0.5
-c      INTEGER k,n
-c      REAL probbi
-c      probbi=bico(n,k)*0.5**n
-c      return
-c      END
-
-c      RECURSIVE FUNCTION funcA(n,runmax) result(anr)
-cc     Schilling distribution, from Schilling1990:
-cc     https://www.maa.org/sites/default/files/images/upload_library/22/Polya/07468342.di020742.02p0021g.pdf
-cc     n is number of data points, runmax is longest run
-c      INTEGER n,runmax
-cc     anr is number of combinations with n and runmax
-c      REAL anr
-c      if (n.le.runmax) then
-c      anr=2**n
-c      else
-c      anr=0
-c      DO 123 i=0,runmax
-c      anr=anr+funcA(n-1-i,runmax)
-c 123  CONTINUE
-c      endif
-c      return 
-c      END
-      
-c      EXTERNAL SUB1
-c      INTEGER Ndata
-c      COMMON /GLOBALS/ Ndata
-c      Ndata=mtotxx
-
-c      SUBROUTINE SUB1(anr,Ndata,runmax,DUMSUB)
-cc     Schilling distribution, from Schilling1990:
-cc     https://www.maa.org/sites/default/files/images/upload_library/22/Polya/07468342.di020742.02p0021g.pdf
-cc     n is number of data points, runmax is longest run
-c      INTEGER Ndata,runmax
-c      EXTERNAL DUMSUB
-cc     anr is number of combinations with Ndata and runmax
-c      REAL tmp,anr
-cc      write(6,*)'SUB1 call, Ndata = ',Ndata
-c      if (Ndata.le.runmax) then
-c      anr=2**Ndata
-c      else
-c      sum=0
-c      DO 123 i=0,runmax
-c      CALL DUMSUB(tmp,Ndata-1-i,runmax,DUMSUB)
-c      sum=sum+tmp
-c 123  CONTINUE
-c      anr=sum
-c      endif
-c      END
-
-c      FUNCTION PROBNR(n,runmax)
-cc     https://www.nature.com/articles/nmeth.3358#Sec2      
-c      INTEGER n,runmax
-c      real p,A
-c      CALL SUB1(A,n,runmax,SUB1)
-cc      p=1.0-A/2**n
-c      p=A
-c      return
-c      END
-
