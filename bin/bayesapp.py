@@ -279,6 +279,7 @@ if __name__=='__main__':
     plt.xlabel(r'$r$')
     plt.ylabel(r'$p(r)$')
     plt.title('p(r)')
+    plt.tight_layout()
     plt.savefig('pr.png',dpi=200)
     plt.close()
 
