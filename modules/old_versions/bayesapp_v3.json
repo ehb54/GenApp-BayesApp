@@ -38,29 +38,24 @@
             ,"label"      : "qmin (optional)"
             ,"type"       : "float"
             ,"step"       : 0.001
-	    ,"min"        : 0
-	    ,"max"        : 10000
             ,"help"       : "Optionally enter q min - same units as the input data: 1/A or 1/nm."
         }
         ,{
             "role"       : "input"
-            ,"id"         : "qmax"
-            ,"label"      : "qmax (optional)"
+            ,"id"         : "qmax (optional)"
+            ,"label"      : "qmax"
             ,"type"       : "float"
             ,"step"       : 0.001
-	    ,"min"        : 0
-	    ,"max"        : 10000
             ,"help"       : "Optionally enter q max - same units the input as data: 1/A or 1/nm."
         }
         ,{
             "role"       : "input"
             ,"id"         : "dmax"
-            ,"label"      : "Guess of the maximum distance (optional)"
+            ,"label"      : "Starting value for the maximum distance (optional)"
             ,"type"       : "float"
             ,"step"       : 0.001
             ,"min"        : 0
-	    ,"max"        : 10000
-            ,"help"       : "<p>Optionally enter an initial estimate of the maximum distance in the scatterer - same units as the input data: A or nm.</p><p> A decent guess makes BayesApp faster and more reliable</p>"
+            ,"help"       : "<p>Optionally enter starting value for the maximum distance in the scatterer - same units as the input data: A or nm.</p><p> A decent guess makes the transformation more reliable and faster</p>"
             ,"norow"      : "true"
         }
         ,{
@@ -83,7 +78,7 @@
         ,{  
             "role"       : "input"
             ,"id"         : "label_advanced_options"
-            ,"label"      : "<hr> Advanced options (if in doubt, leave as is and press Submit)<hr>"
+            ,"label"      : "<hr> Advanced options (if in doubt, leave as is)<hr>"
             ,"type"       : "label"
             ,"colspan"    : 2
         }
@@ -92,9 +87,7 @@
             ,"id"         : "alpha"
             ,"label"      : "Starting value for the Lagrange multiplier, alpha (optional)"
             ,"type"       : "float"
-            ,"step"       : 1
-	    ,"min"        : -999
-	    ,"max"        : 999
+            ,"step"       : 0.001
             ,"help"       : "<p>Optionally enter the starting value for the logarithm of the Lagrange multiplier, alpha (usually between -10 and 20).</p><p>Larger values will give smoother distributions or, for the MaxEnt constraint, an estimate closer to the prior ellipsoid of revolution.</p>"
             ,"norow"      : "true"
         }
@@ -139,9 +132,7 @@
             ,"id"         : "smearing"
             ,"label"      : "Desmearing constant"
             ,"type"       : "float"
-            ,"step"       : 1
-	    ,"min"        : -999
-	    ,"max"        : 999
+            ,"step"       : 0.001
             ,"help"       : "<p>Optionally enter a correction for slit smearing. Default is no smearing.</p><p>Enter value for constant c as given by the expression</p><p>I_smear(q) = integrate P(t)*I(sqrt(q**2 + t**2)) dt with the</p><p>primary beam length profile: P(t) = c/sqrt(pi) * exp(-c**2*t**2).</p><p>The fit and the deconvolution are both given in the ouput file fit.d</p>"
         }
         ,{
@@ -151,7 +142,7 @@
             ,"type"       : "integer"
             ,"min"        : 10
             ,"max"        : 1000
-            ,"help"       : "<p>Set to e.g. 500, if p(r) goes abruptly to zero</p><p>Input number of extra error calculations (max 1000).</p><p>Entering a large number will improve the error estimate,</p><p>but require more cpu time.</p><p>In some cases it may be a little tricky to obtain a decent</p><p>error estimate. Try testing a couple of values to see the effect. </p>"
+            ,"help"       : "<p>Optionally Input number of extra error calculations (max 1000).</p><p>Entering a large number will improve the error estimate,</p><p>but require more cpu time.</p><p>In some cases it may be a little tricky to obtain a decent</p><p>error estimate. Try testing a couple of values to see the effect. </p>"
         }
 #        ,{
 #            "role"       : "input"
@@ -243,13 +234,13 @@
             ,"repeat"     : "rescale_mode:N"
             ,"help"       : "<p>Minimum bin size of one Shannon bin.</p><p>See Larsen and Pedersen 2021 [5]</p>"
         }
-#	,{
-#            "role"       : "input"
-#            ,"id"         : "outlieranalysis"
-#            ,"label"      : "Plot outlier analysis"
-#	    ,"type"       : "checkbox"
-#            ,"help"       : "<p>Highlight potential outliers, with a probability less than 0.03 (3 sigma) given the p(r) fit</p><p>(after Bonferroni multiple test analysis p = p*N, where N is the number of datapoints).</p><p>Make data file with the worst of these outliers (largest magnitude of normalized residual) filtered out</p><p>Outliers can be points with clearly deviating average value, or points with highly underestimated errors."
-#        }
+	,{
+            "role"       : "input"
+            ,"id"         : "outlieranalysis"
+            ,"label"      : "Plot outlier analysis"
+	    ,"type"       : "checkbox"
+            ,"help"       : "<p>Highlight potential outliers, with a probability less than 0.03 (3 sigma) given the p(r) fit</p><p>(after Bonferroni multiple test analysis p = p*N, where N is the number of datapoints).</p><p>Make data file with the worst of these outliers (largest magnitude of normalized residual) filtered out</p><p>Outliers can be points with clearly deviating average value, or points with highly underestimated errors."
+        }
 	,{
             "role"       : "input"
             ,"id"         : "logx"
@@ -260,7 +251,7 @@
 	,{
             "role"       : "input"
             ,"id"         : "make_pr_bin"
-            ,"label"      : "Set p(r) bin size"
+            ,"label"      : "Make p(r) with fixed binsize"
             ,"type"       : "checkbox"
 	    ,"checked"    : "false"
             ,"repeater"   : "true"
@@ -297,32 +288,31 @@
         ,{
             "role"       : "output"
             ,"id"         : "pr"
-            ,"label"      : "pair distribution, p(r)"
+            ,"label"      : "p(r)"
             ,"type"       : "file"
-            ,"help"       : "The produced pair distribution, p(r)"
+            ,"help"       : "The produced p(r) file"
         }
-#	,{
-#            "role"       : "output"
-#            ,"id"         : "pr_bin"
-#            ,"label"      : "p(r) with fixed bin size (if selected)"
-#            ,"type"       : "file"
-#            ,"help"       : "The produced p(r) file, interpolated on grid with user-defined binsize."
-#        }
+	,{
+            "role"       : "output"
+            ,"id"         : "pr_bin"
+            ,"label"      : "p(r) with fixed bin size (if selected)"
+            ,"type"       : "file"
+            ,"help"       : "The produced p(r) file, interpolated on grid with user-defined binsize."
+        }
         ,{
             "role"       : "output"
             ,"id"         : "fitofdata"
             ,"label"      : "Fit of data"
             ,"type"       : "file"
-#            ,"help"       : "The fit of the data"
-            ,"help"       : "The fit (on the same q-scale as the data)."
+            ,"help"       : "The fit of the data"
         }
-#	,{
-#            "role"       : "output"
-#            ,"id"         : "fit_q"
-#            ,"label"      : "Fit, same q-scale as data"
-#            ,"type"       : "file"
-#            ,"help"       : "The fit of the data, interpolated onto the same q-scale as the data."
-#        }
+	,{
+            "role"       : "output"
+            ,"id"         : "fit_q"
+            ,"label"      : "Fit, same q-scale as data"
+            ,"type"       : "file"
+            ,"help"       : "The fit of the data, interpolated onto the same q-scale as the data."
+        }
         ,{
             "role"       : "output"
             ,"id"         : "dataused"
@@ -333,7 +323,7 @@
         ,{
             "role"       : "output"
             ,"id"         : "rescaled"
-            ,"label"      : "Data with rescaled errors (if over/underestimated)"
+            ,"label"      : "Data with errors rescaled (rebinned)"
             ,"type"       : "file"
             ,"help"       : "<p>Dataset with errors being rescaled by a correction factor. Rebinned (if opted for).</p><p>See Larsen and Pedersen 2020 [5]</p>"
         }
@@ -344,13 +334,13 @@
             ,"type"       : "file"
             ,"help"       : "<p>Dataset with worst outlier (with highest magnitude of the normalized residual) being filtered out.</p><p>Potential outliers defined as points with p-value<0.03 with respect to p(r) fit, after multiple testing correction p=p*N, where N is the  number of datapoints</p>"
         }
-#        ,{
-#            "role"       : "output"
-#            ,"id"         : "scale_factor"
-#            ,"label"      : "Correction factors for errors"
-#            ,"type"       : "file"
-#            ,"help"       : "List of factor(s) by which errors (in rescale.d) has been rescaled. See Larsen and Pedersen 2020 [5]"
-#        }
+        ,{
+            "role"       : "output"
+            ,"id"         : "scale_factor"
+            ,"label"      : "Correction factor for errors"
+            ,"type"       : "file"
+            ,"help"       : "List of factor(s) by which errors (in rescale.d) has been rescaled. See Larsen and Pedersen 2020 [5]"
+        }
         ,{
             "role"       : "output"
             ,"id"         : "parameters"
@@ -358,20 +348,20 @@
             ,"type"       : "file"
             ,"help"       : "The parameters file"
         }
-#	,{
-#            "role"       : "output"
-#            ,"id"         : "file_stdout"
-#            ,"label"      : "Terminal output"
-#            ,"type"       : "file"
-#            ,"help"       : "A copy of the standard output"
-#        }
-#        ,{
-#            "role"       : "output"
-#            ,"id"         : "sourcecode"
-#            ,"label"      : "Source code"
-#            ,"type"       : "file"
-#            ,"help"       : "Source code (needs to be compiled)"
-#        }
+	,{
+            "role"       : "output"
+            ,"id"         : "file_stdout"
+            ,"label"      : "Terminal output"
+            ,"type"       : "file"
+            ,"help"       : "A copy of the standard output"
+        }
+        ,{
+            "role"       : "output"
+            ,"id"         : "sourcecode"
+            ,"label"      : "Source code"
+            ,"type"       : "file"
+            ,"help"       : "Source code (needs to be compiled)"
+        }
 #	,{
 #            "role"       : "output"
 #            ,"id"         : "p_table"
@@ -379,13 +369,13 @@
 #            ,"type"       : "file"
 #            ,"help"       : "Used by the source code, bift.f, when calculating cormap p-values."
 #        }
-#        ,{
-#            "role"       : "output"
-#            ,"id"         : "inputfile"
-#            ,"label"      : "Input file"
-#            ,"type"       : "file"
-#            ,"help"       : "Input file (for running locally)"
-#        }
+        ,{
+            "role"       : "output"
+            ,"id"         : "inputfile"
+            ,"label"      : "Input file"
+            ,"type"       : "file"
+            ,"help"       : "Input file (for running locally)"
+        }
         ,{
             "role"       : "output"
             ,"id"         : "zip"
@@ -445,7 +435,7 @@
 	,{
             "role"       : "output"
             ,"id"         : "label_errors"
-            ,"label"      : "<hr> Error Assessment (see also runs tests below plots) <hr>"
+            ,"label"      : "<hr> Error Assessment <hr>"
             ,"type"       : "label"
             ,"colspan"    : 2
         }
@@ -459,14 +449,14 @@
         ,{
             "role"       : "output"
             ,"id"         : "prob"
-            ,"label"      : "p-value for Chi2r"
+            ,"label"      : "Probability of Chi2r, p-value"
             ,"type"       : "text"
 	    ,"help"       : "probability for Chi2r, given correct errors. See Larsen and Pedersen 2021 [5]"
         }
 	,{
             "role"       : "output"
             ,"id"         : "assess"
-            ,"label"      : "The experimental errors are probably"
+            ,"label"      : "The experimental errors are probably:"
             ,"type"       : "text"
 	    ,"help"       : "<p>Experimental errors assessed from the Chi2r. Recommended significance criteria: </p><p>the experimental errors are correctly estimated if the probability is above 0.003,</p><p> else they are likely over/underestimated and rescaled errors (in rescale.d) may be used for further data analysis.</p><p>See Larsen and Pedersen 2021 [5]</p>"
         }
@@ -477,68 +467,68 @@
             ,"type"       : "text"
 	    ,"help"       : "<p>Constant rescaling (default): a constant was used to rescale errors in rescale.d, by:</p><p> sigma_rescaled = c*sigma, where c = sqrt(Chi2r)</p><p>Non-constant rescaling: q-dependent factors were used to rescale errors in rescale.d (indepent in each Shannon-bin):</p><p>sigma_rescaled_bin = c_bin*sigma, where c_bin = sqrt(Chi2r_bin)</p><p>See Larsen and Pedersen 2021 [5]</p>"
         }
-#	,{
-#            "role"       : "output"
-#            ,"id"         : "label_run"
-#            ,"label"      : "<hr>Runs tests <hr>"
-#            ,"type"       : "label"
-#            ,"colspan"    : 2
-#        }
-#        ,{
-#            "role"       : "output"
-#            ,"id"         : "Rmax"
-#            ,"label"      : "Longest run in data"
-#            ,"type"       : "text"
-#            ,"help"       : "Longest run of model values being above or below corresponding data. Pairwize Cormap test. Franke et al 2015, Nature Methods 12: 419-422. OBS: parameters are averages of all solutions, weighted with probability, therefore this number is not an integer."
-#        }
-#	,{
-#            "role"       : "output"
-#            ,"id"         : "Rmax_expect"
-#            ,"label"      : "Theoretical expected longest run"
-#            ,"type"       : "text"
-#            ,"help"       : "Expected longest run (Schilling 1990: The longest run of heads)."
-#        }
-#        ,{
-#            "role"       : "output"
-#            ,"id"         : "p_Rmax"
-#            ,"label"      : "p-value for longest run"
-#            ,"type"       : "text"
-#            ,"help"       : "Probability of getting this longest run (or any more extreme value), given the number of data points and that model and data come from the same distribution (Schilling 1990: The longest run of heads)."
-#        }
-#	,{
-#            "role"       : "output"
-#            ,"id"         : "NR"
-#            ,"label"      : "Number of runs in data"
-#            ,"type"       : "text"
-#            ,"help"       : "Number of runs when comparing model and data. Wald-Wolfowitz runs test. OBS: parameters are averages of all solutions, weighted with probability, therefore this number is not an integer."
-#        }
-#	,{
-#            "role"       : "output"
-#            ,"id"         : "NR_expect"
-#            ,"label"      : "Theoretical expected number of runs"
-#            ,"type"       : "text"
-#            ,"help"       : "Expected number of runs (see, e.g., the Wikipedia entry on Wald-Wolfowitz runs test)."
-#        }
-#	,{
-#            "role"       : "output"
-#            ,"id"         : "p_NR"
-#            ,"label"      : "p-value for number of runs"
-#            ,"type"       : "text"
-#            ,"help"       : "Probability of getting this number of runs (or any more extreme value). Assuming number or runs are normal distributed (see, e.g., the Wikipedia entry on Wald-Wolfowitz runs test)."
-#        }
-#	,{
-#            "role"       : "output"
-#            ,"id"         : "label_outlier"
-#            ,"label"      : "<hr>Outlier analysis <hr>"
-#            ,"type"       : "label"
-#            ,"colspan"    : 2
-#        }
+	,{
+            "role"       : "output"
+            ,"id"         : "label_run"
+            ,"label"      : "<hr>Runs tests <hr>"
+            ,"type"       : "label"
+            ,"colspan"    : 2
+        }
+        ,{
+            "role"       : "output"
+            ,"id"         : "Rmax"
+            ,"label"      : "Longest run"
+            ,"type"       : "text"
+            ,"help"       : "Longest run of model values being above or below corresponding data. Pairwize Cormap test. Franke et al 2015, Nature Methods 12: 419-422. OBS: parameters are averages of all solutions, weighted with probability, therefore this number is not an integer."
+        }
+	,{
+            "role"       : "output"
+            ,"id"         : "Rmax_expect"
+            ,"label"      : "Expected longest run"
+            ,"type"       : "text"
+            ,"help"       : "Expected longest run (Schilling 1990: The longest run of heads)."
+        }
+        ,{
+            "role"       : "output"
+            ,"id"         : "p_Rmax"
+            ,"label"      : "Probability of this longest run"
+            ,"type"       : "text"
+            ,"help"       : "Probability of getting this longest run (or any more extreme value), given the number of data points and that model and data come from the same distribution (Schilling 1990: The longest run of heads)."
+        }
+	,{
+            "role"       : "output"
+            ,"id"         : "NR"
+            ,"label"      : "Number of runs"
+            ,"type"       : "text"
+            ,"help"       : "Number of runs when comparing model and data. Wald-Wolfowitz runs test. OBS: parameters are averages of all solutions, weighted with probability, therefore this number is not an integer."
+        }
+	,{
+            "role"       : "output"
+            ,"id"         : "NR_expect"
+            ,"label"      : "Expected number of runs"
+            ,"type"       : "text"
+            ,"help"       : "Expected number of runs (see, e.g., the Wikipedia entry on Wald-Wolfowitz runs test)."
+        }
+	,{
+            "role"       : "output"
+            ,"id"         : "p_NR"
+            ,"label"      : "Probability of this number of runs"
+            ,"type"       : "text"
+            ,"help"       : "Probability of getting this number of runs (or any more extreme value). Assuming number or runs are normal distributed (see, e.g., the Wikipedia entry on Wald-Wolfowitz runs test)."
+        }
+	,{
+            "role"       : "output"
+            ,"id"         : "label_outlier"
+            ,"label"      : "<hr>Outlier analysis <hr>"
+            ,"type"       : "label"
+            ,"colspan"    : 2
+        }
 	,{
             "role"       : "output"
             ,"id"         : "Noutlier"
             ,"label"      : "Number of potential outliers"
             ,"type"       : "text"
-            ,"help"       : "Potential outlier is a datapoint with p-value below 0.03, given fit is true. After Benferroni multiple test correction p = p*N, where N is the number of data points. Data without the worst outlier (having largest magnitude of the normalized residual) is provided as outlier_filtered.dat. Consider rerunning analysis with that dataset."
+            ,"help"       : "Potential outlier is a datapoint with p-value below 0.03, given fit is true. After Benferroni multiple test correction p = p*N, where N is the number of data points. Shown in plot if opted for. Data without the worst outlier (having largest magnitude of the normalized residual) is provided as outlier_filtered.dat."
         }
 	,{
             "role"       : "output"
@@ -550,9 +540,9 @@
         ,{
             "role"       : "output"
             ,"id"         : "Ng"
-            ,"label"      : "Number of good parameters."
+            ,"label"      : "Ng (Number of good parameters)"
             ,"type"       : "text"
-            ,"help"       : "Number of good parameters is an estimate of the maksimum number of independent model parameters you can retrieve from the data. See Vestergaard and Hansen 2006 [4]"
+            ,"help"       : "Number of good parameters. See Hansen 2006 [5]"
         }
         ,{
             "role"       : "output"
@@ -561,27 +551,27 @@
             ,"type"       : "text"
             ,"help"       : "Number of Shannon channels"
 	}
-#        ,{
-#            "role"       : "output"
-#            ,"id"         : "label_alpha"
-#            ,"label"      : "<hr>Prior and estimation of alpha <hr>"
-#            ,"type"       : "label"
-#            ,"colspan"    : 2
-#        }
-#        ,{
-#            "role"       : "output"
-#            ,"id"         : "logalpha"
-#            ,"label"      : "log(alpha)"
-#            ,"type"       : "text"
-#	    ,"help"       : "Lagrange multiplier. Chi2 + alpha*S was minimized in the fit. S is the smoothness prior. See Hansen 2000 [1]"
-#        }
-#        ,{
-#            "role"       : "output"
-#            ,"id"         : "evidence"
-#            ,"label"      : "Evidence at maximum"
-#            ,"type"       : "text"
-#	    ,"help"       : "Evidence for the solution, used to determine the most probable alpha. See Hansen 2000 [1]"
-#        }
+        ,{
+            "role"       : "output"
+            ,"id"         : "label_alpha"
+            ,"label"      : "<hr>Prior and estimation of alpha <hr>"
+            ,"type"       : "label"
+            ,"colspan"    : 2
+        }
+        ,{
+            "role"       : "output"
+            ,"id"         : "logalpha"
+            ,"label"      : "log(alpha)"
+            ,"type"       : "text"
+	    ,"help"       : "Lagrange multiplier. Chi2 + alpha*S was minimized in the fit. S is the smoothness prior. See Hansen 2000 [1]"
+        }
+        ,{
+            "role"       : "output"
+            ,"id"         : "evidence"
+            ,"label"      : "Evidence at maximum"
+            ,"type"       : "text"
+	    ,"help"       : "Evidence for the solution, used to determine the most probable alpha. See Hansen 2000 [1]"
+        }
 #        ,{
 #            "role"       : "output"
 #            ,"id"         : "axratio_pro"
@@ -608,135 +598,28 @@
             ,"id"         : "prfig"
             ,"label"      : ""
             ,"type"       : "image"
-            ,"width"      : "40%"
+            ,"width"      : "50%"
         }
         ,{
             "role"       : "output"
             ,"id"         : "iqfig"
             ,"label"      : ""
             ,"type"       : "image"
-            ,"width"      : "40%"
+            ,"width"      : "50%"
         }
         ,{
             "role"       : "output"
             ,"id"         : "rescalefig"
             ,"label"      : ""
             ,"type"       : "image"
-            ,"width"      : "40%"
+            ,"width"      : "50%"
         }
         ,{
             "role"       : "output"
             ,"id"         : "iqrsfig"
             ,"label"      : ""
             ,"type"       : "image"
-            ,"width"      : "40%"
-        }
-        ,{
-            "role"       : "output"
-            ,"id"         : "label_run"
-            ,"label"      : "<hr>Runs tests <hr>"
-            ,"type"       : "label"
-            ,"colspan"    : 2
-        }
-        ,{
-            "role"       : "output"
-            ,"id"         : "Rmax"
-            ,"label"      : "Longest run in data"
-            ,"type"       : "text"
-            ,"help"       : "Longest run of model values being above or below corresponding data. Pairwize Cormap test. Franke et al 2015, Nature Methods 12: 419-422. OBS: parameters are averages of all solutions, weighted with probability, therefore this number may not be an integer."
-#            ,"norow"      : "true"
-        }
-        ,{
-            "role"       : "output"
-            ,"id"         : "Rmax_expect"
-            ,"label"      : "Theoretical expected longest run"
-            ,"type"       : "text"
-            ,"help"       : "Expected longest run (Schilling 1990: The longest run of heads)."
-#            ,"norow"      : "true"
-        }
-        ,{
-            "role"       : "output"
-            ,"id"         : "p_Rmax"
-            ,"label"      : "p-value for longest run"
-            ,"type"       : "text"
-            ,"help"       : "Probability of getting this longest run (or any more extreme value), given the number of data points and that model and data come from the same distribution (Schilling 1990: The longest run of heads)."
-        }
-        ,{
-            "role"       : "output"
-            ,"id"         : "NR"
-            ,"label"      : "Number of runs in data"
-            ,"type"       : "text"
-            ,"help"       : "Number of runs when comparing model and data. Wald-Wolfowitz runs test. OBS: parameters are averages of all solutions, weighted with probability, therefore this number i/ not an integer."
-        }
-        ,{
-            "role"       : "output"
-            ,"id"         : "NR_expect"
-            ,"label"      : "Theoretical expected number of runs"
-            ,"type"       : "text"
-            ,"help"       : "Expected number of runs (see, e.g., the Wikipedia entry on Wald-Wolfowitz runs test)."
-        }
-        ,{
-            "role"       : "output"
-            ,"id"         : "p_NR"
-            ,"label"      : "p-value for number of runs"
-            ,"type"       : "text"
-            ,"help"       : "Probability of getting this number of runs (or any more extreme value). Assuming number or runs are normal distributed (see, e.g., the Wikipedia entry on Wald-Wolfowitz runs test)."
-        }
-        ,{
-            "role"       : "output"
-            ,"id"         : "hroutputi2"
-            ,"label"      : "<hr> Additional output files <hr>"
-            ,"type"       : "label"
-            ,"colspan"    : 2
-        }
-	,{
-            "role"       : "output"
-            ,"id"         : "inputfile"
-            ,"label"      : "Input file"
-            ,"type"       : "file"
-            ,"help"       : "Input file (for running locally)"
-        }
-        ,{
-            "role"       : "output"
-            ,"id"         : "sourcecode"
-            ,"label"      : "Source code"
-            ,"type"       : "file"
-            ,"help"       : "Source code (needs to be compiled)"
-        }
-        ,{
-            "role"       : "output"
-            ,"id"         : "file_stdout"
-            ,"label"      : "Terminal output"
-            ,"type"       : "file"
-            ,"help"       : "A copy of the standard output"
-        }
-        ,{
-            "role"       : "output"
-            ,"id"         : "scale_factor"
-            ,"label"      : "Correction factors for errors"
-            ,"type"       : "file"
-            ,"help"       : "List of factor(s) by which errors (in rescale.d) has been rescaled. See Larsen and Pedersen 2020 [5]"
-        }
-        ,{
-            "role"       : "output"
-            ,"id"         : "label_alpha"
-            ,"label"      : "<hr>Evidence and estimation of alpha <hr>"
-            ,"type"       : "label"
-            ,"colspan"    : 2
-        }
-        ,{
-            "role"       : "output"
-            ,"id"         : "logalpha"
-            ,"label"      : "log(alpha)"
-            ,"type"       : "text"
-            ,"help"       : "Lagrange multiplier. Chi2 + alpha*S was minimized in the fit. S is the smoothness prior. See Hansen 2000 [1]"
-        }
-        ,{
-            "role"       : "output"
-            ,"id"         : "evidence"
-            ,"label"      : "Evidence at maximum"
-            ,"type"       : "text"
-            ,"help"       : "Evidence for the solution, used to determine the most probable alpha. See Hansen 2000 [1]"
+            ,"width"      : "50%"
         }
     ]
 }

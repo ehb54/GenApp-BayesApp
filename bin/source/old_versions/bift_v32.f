@@ -226,10 +226,7 @@ c*************************************************************
         if((x1.gt.50).and.(k.le.10)) backspace 1
         if((x1.gt.50).and.(k.le.10)) goto 22
       if(sd1.le.0) ndata0=0
-c check q-range
       if((x1.lt.qmin).or.(x1.gt.qmax)) goto 22
-c exclude points with I=sigma=0 (due to beamstop etc)
-      if((y1.eq.0).and.(sd1.eq.0)) goto 22
       ndata=ndata+1
 c write data to dummy.dat (111)
       write(111,*)x1,y1,sd1

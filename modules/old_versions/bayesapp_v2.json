@@ -1,0 +1,615 @@
+{
+#    "moduleid" : "ift"
+    "moduleid" : "bayesapp"
+    ,"label"    : "BayesApp"
+#    ,"executable"   : "ift"
+    ,"executable"   : "bayesapp.py"
+    ,"submitpolicy" : "all"
+#    ,"uniquedir" : "true"
+#    ,"center" : "true"
+    ,"centeroutput" : "true"
+# dependencies:
+# apt-get install libgfortran3 libpng-dev libreadline-dev
+# install and compile gnuplot 4.2.6 with gif support    
+    ,"fields"   : [
+        {
+            "role"       : "input"
+            ,"id"        : "label_0"
+            ,"type"      : "label"
+            ,"colspan"   : 3
+            ,"default"   : "header3"
+            ,"label"     : "BayesApp [<a target=_blank href=https://scripts.iucr.org/cgi-bin/paper?pe0063>1,</a><a target=_blank href=https://onlinelibrary.wiley.com/iucr/doi/10.1107/S0021889812014318>2,</a><a target=_blank href=https://scripts.iucr.org/cgi-bin/paper?gk0508>3,</a><a target=_blank href=https://scripts.iucr.org/cgi-bin/paper?wf5022>4,</a><a target=_blank href=https://doi.org/10.1107/S1600576721006877>5,</a><a target=_blank href=https://github.com/ehb54/GenApp-BayesApp>Source code</a>]"
+            ,"prehline"  : "true"
+            ,"posthline" : "true"
+        }
+        ,{
+            "role"       : "input"
+            ,"id"         : "datafile"
+            ,"label"      : "Data file (columns: q,I,sigma)"
+# need to force copy over
+#            ,"type"       : "lrfile"
+            ,"type"       : "file"
+            ,"required"   : "true"
+            ,"help"       : "<p>i): Format (q, I(q), error). Data points can optionally be rebinned.</p><p>ii): Text lines in the data file are ignored.</p><p>iii): Maximum dynamic range for I(q) is about 1000 using the web version due to the limited resolution of p(r).</p>"
+        }
+        ,{
+            "role"       : "input"
+            ,"id"         : "qmin"
+            ,"label"      : "qmin"
+            ,"type"       : "float"
+            ,"step"       : 0.001
+            ,"help"       : "Optionally enter q min - same units as the input data: 1/A or 1/nm."
+        }
+        ,{
+            "role"       : "input"
+            ,"id"         : "qmax"
+            ,"label"      : "qmax"
+            ,"type"       : "float"
+            ,"step"       : 0.001
+            ,"help"       : "Optionally enter q max - same units the input as data: 1/A or 1/nm."
+        }
+	,{
+            "role"       : "input"
+            ,"id"         : "nrebin"
+            ,"label"      : "Max no. of points in data (rebin)"
+            ,"type"       : "integer"
+	    ,"min"        : "20"
+	    ,"default"    : "500"
+	    ,"max"        : "9999"
+            ,"step"       : 20
+            ,"help"       : "<p>Optionally enter max number of datapoints (rebinning data to this number of bins) - can give significant speed-up.</p><p>Default is nrebin=500, minimum is 20, max is 9999.</p><p>IMPORTANT: the correction factor depends on the rebinning, so the output correction factor is for the rebined data.</p><p>Rebinned data and scaled and rebinned data are given as output.</p>"
+        }
+        ,{
+            "role"       : "input"
+            ,"id"         : "fitbackground"
+            ,"label"      : "Fit background"
+            ,"type"       : "checkbox"
+	    ,"checked"    : "true"
+            ,"help"       : "A flat background is fitted to the data (highly recommended)."
+        }
+        ,{
+            "role"       : "input"
+            ,"id"         : "dmax"
+            ,"label"      : "Maximum distance"
+            ,"type"       : "float"
+            ,"step"       : 0.001
+            ,"min"        : 0
+            ,"help"       : "<p>Optionally enter starting value for the maximum distance in the scatterer - same units as the input data: A or nm.</p><p> A decent guess makes the transformation more reliable and faster</p>"
+            ,"norow"      : "true"
+        }
+        ,{
+            "role"       : "input"
+            ,"id"         : "dmaxfixed"
+            ,"label"      : "Fix"
+            ,"type"       : "checkbox"
+            ,"help"       : "Fix the value for dmax"
+        }
+        ,{
+            "role"       : "input"
+            ,"id"         : "alpha"
+            ,"label"      : "Starting value for the Lagrange multiplier, alpha"
+            ,"type"       : "float"
+            ,"step"       : 0.001
+            ,"help"       : "<p>Optionally enter the starting value for the logarithm of the Lagrange multiplier, alpha (usually between -10 and 20).</p><p>Larger values will give smoother distributions or, for the MaxEnt constraint, an estimate closer to the prior ellipsoid of revolution.</p>"
+            ,"norow"      : "true"
+        }
+        ,{
+            "role"       : "input"
+            ,"id"         : "alphafixed"
+            ,"label"      : "Fix"
+            ,"type"       : "checkbox"
+            ,"help"       : "Fix the value for alpha"
+        }
+        ,{
+            "role"       : "input"
+            ,"id"         : "prpoints"
+            ,"label"      : "Number of points in p(r)"
+            ,"type"       : "integer"
+            ,"min"        : 20
+            ,"default"    : 70
+            ,"max"        : 500
+            ,"help"       : "<p>Optionally enter the number of points in the estimated function p(r): more points increase the cpu-time.</p><p>Default: 70, Minimum 20, Maximum 500</p>"
+        }
+        ,{
+            "role"       : "input"
+            ,"id"         : "transform"
+            ,"label"      : "Transformation/Regularization"
+            ,"type"       : "listbox"
+#            ,"values"     : "Debye (default -> returning p(r) with positivity constraint)~D~Negative (Debye transformation -> returning p(r) without positivity constraint)~N~MaxEnt using an ellipsoid of revolution as prior ( -> p(r) -positivity constraint)~M~Bessel (for cylindrical scatterers -> cross section distribution)~B~Cosine (lamellae -> thickness distribution)~C~Size (using spheres only -> size distribution)~S"
+            ,"values"     : "Debye (default -> returning p(r) with positivity constraint)~D~Negative (Debye transformation -> returning p(r) without positivity constraint)~N~MaxEnt using an ellipsoid of revolution as prior ( -> p(r) -positivity constraint)~M"
+#            ,"help"       : "<p>As a rule of thumb, use Negative if:</p><p> (1) there is a structure factor (e.g. electrostatic repulsion), or</p><p> (2) the particle has both positive and negative contrast (e.g. micelles or nanodiscs)</p><p> else, use Debye</p><p>All options:</p><p>[D]ebye (default -> returning p(r) with positivity constraint), sin(q*r)/(q*r) * dr</p><p>[N]egative (Debye transformation -> returning p(r) without positivity constraint), sin(q*r)/(q*r) * dr</p><p>[M]axEnt using an ellipsoid of revolution as prior ( -> p(r) -positivity constraint), sin(q*r)/(q*r) * dr</p><p> The axial ratio for the ellipsoid is optimized using the posterior probability.</p><p> The axial ratio may be initialized or fixed using the box <i>Estimate axial ratio</i></p><p>     (leave the box <i>Fit axial ratio</i> empty).</p><p>[B]essel (for cylindrical scatterers -> cross section distribution), J_0(q*r)/q * dr</p><p>[C]osine (lamellae -> thickness distribution), cos(q*r)/q**2 * dr</p><p>[S]ize (using spheres only -> size distribution), (3*sin(q*r)-q*r*cos(q*r))/(q*r)**3)**2 * dr </p>"
+            ,"help"       : "<p>As a rule of thumb, use Negative if:</p><p> (1) there is a structure factor (e.g. electrostatic repulsion), or</p><p> (2) the particle has both positive and negative contrast (e.g. micelles or nanodiscs)</p><p> else, use Debye</p><p>All options:</p><p>[D]ebye (default -> returning p(r) with positivity constraint), sin(q*r)/(q*r) * dr</p><p>[N]egative (Debye transformation -> returning p(r) without positivity constraint), sin(q*r)/(q*r) * dr</p><p>[M]axEnt using an ellipsoid of revolution as prior ( -> p(r) -positivity constraint), sin(q*r)/(q*r) * dr</p><p> The axial ratio for the ellipsoid is optimized using the posterior probability.</p>"
+        }
+        ,{  
+            "role"       : "input"
+            ,"id"         : "label_advanced_options"
+            ,"label"      : "<hr> Advanced options <hr>"
+            ,"type"       : "label"
+            ,"colspan"    : 2
+        }
+        ,{
+            "role"       : "input"
+            ,"id"         : "smearing"
+            ,"label"      : "Desmearing constant"
+            ,"type"       : "float"
+            ,"step"       : 0.001
+            ,"help"       : "<p>Optionally enter a correction for slit smearing. Default is no smearing.</p><p>Enter value for constant c as given by the expression</p><p>I_smear(q) = integrate P(t)*I(sqrt(q**2 + t**2)) dt with the</p><p>primary beam length profile: P(t) = c/sqrt(pi) * exp(-c**2*t**2).</p><p>The fit and the deconvolution are both given in the ouput file fit.d</p>"
+        }
+        ,{
+            "role"       : "input"
+            ,"id"         : "noextracalc"
+            ,"label"      : "Number of extra error calculations"
+            ,"type"       : "integer"
+            ,"min"        : 10
+            ,"max"        : 1000
+            ,"help"       : "<p>Optionally Input number of extra error calculations (max 1000).</p><p>Entering a large number will improve the error estimate,</p><p>but require more cpu time.</p><p>In some cases it may be a little tricky to obtain a decent</p><p>error estimate. Try testing a couple of values to see the effect. </p>"
+        }
+#        ,{
+#            "role"       : "input"
+#            ,"id"         : "nondilute"
+#            ,"label"      : "Non-dilute solution"
+#            ,"type"       : "checkbox"
+#            ,"repeater"   : "true"
+#            ,"help"       : "Check for non-dilute solutions"
+#        }
+#        ,{
+#            "role"       : "input"
+#            ,"id"         : "eta"
+#            ,"label"      : "Volume fraction, eta"
+#            ,"type"       : "float"
+#            ,"step"       : 0.1
+#            ,"min"        : 0.0
+#	    ,"max"        : 0.9
+#	    ,"default"    : 0.1
+#            ,"repeat"     : "nondilute"
+#            ,"help"       : "<p>Volume fraction of particles (used to calculate structure factor)</p>"  
+#            ,"norow"      : "true"
+#	}
+#	,{
+#            "role"       : "input"
+#            ,"id"         : "etafixed"
+#            ,"label"      : "Fix"
+#            ,"type"       : "checkbox"
+#            ,"repeat"     : "nondilute"
+#            ,"help"       : "Fix the axial ratio"
+#        }
+#	,{
+#            "role"       : "input"
+#            ,"id"         : "ratio"
+#            ,"label"      : "Axial ratio"
+#            ,"type"       : "float"
+#            ,"step"       : 0.1
+#            ,"default"    : 1.2
+#            ,"min"        : 1.0
+#            ,"max"        : 2.5
+#            ,"repeat"     : "nondilute"
+#            ,"help"       : "Estimate of the axial ratio"
+#            ,"norow"      : "true"
+#        }
+#        ,{
+#            "role"       : "input"
+#            ,"id"         : "ratiofixed"
+#            ,"label"      : "Fix"
+#            ,"type"       : "checkbox"
+#            ,"repeat"     : "nondilute"
+#            ,"help"       : "Fix the axial ratio"
+#        }
+#        ,{
+#            "role"       : "input"
+#            ,"id"         : "method"
+#            ,"label"      : "Fit method"
+#            ,"type"       : "listbox"
+#            ,"repeat"     : "nondilute"
+#	    ,"default"    : "E"
+#            ,"values"     : "No concentration effects~N~Moment~M~Evidence~E"
+#            ,"help"       : "<p>Enter the method.</p><p>No conc effect (default): fit alpha and dmax.</p><p>Moment: fit alpha, dmax and eta.</p><p>Evidence: fit alpha, dmax, eta and ratio.</p>" 
+#        }
+        ,{
+            "role"       : "input"
+            ,"id"         : "nonconstantrescale"
+            ,"label"      : "Non-constant rescaling of errors"
+            ,"type"       : "checkbox"
+            ,"repeater"   : "true"
+            ,"help"       : "Give an estimate of the correction of over/underestimated errors, that vary along q. This estimate can vary for each Shannon channel (minimum 10 points rescaled together per default)."
+        }
+        ,{
+            "role"       : "input"
+            ,"id"         : "binsize"
+            ,"label"      : "Minimum bin size of one Shannon bin (default: 20, min: 10, max: 300)"
+            ,"type"       : "integer"
+            ,"step"       : 1
+	    ,"default"    : 20
+            ,"min"        : 10
+            ,"max"        : 300
+            ,"repeat"     : "nonconstantrescale"
+            ,"help"       : "<p>Minimum bin size of one Shannon bin.</p><p>See Larsen and Pedersen 2021 [5]</p>"
+        }
+	,{
+            "role"       : "input"
+            ,"id"         : "outlieranalysis"
+            ,"label"      : "Plot outlier analysis"
+	    ,"type"       : "checkbox"
+            ,"help"       : "<p>Highlight potential outliers, with a probability less than 0.03 (3 sigma) given the p(r) fit</p><p>(after Bonferroni multiple test analysis p = p*N, where N is the number of datapoints).</p><p>Make data file with the worst of these outliers (largest magnitude of normalized residual) filtered out</p><p>Outliers can be points with clearly deviating average value, or points with highly underestimated errors."
+        }
+	,{
+            "role"       : "input"
+            ,"id"         : "logx"
+            ,"label"      : "Plot data log q (default: lin q)"
+            ,"type"       : "checkbox"
+            ,"help"       : "Plot data and fits on logarithmic q scale (default is linear q scale)"
+        }
+	,{
+            "role"       : "input"
+            ,"id"         : "make_pr_bin"
+            ,"label"      : "Make p(r) with fixed binsize"
+            ,"type"       : "checkbox"
+	    ,"checked"    : "false"
+            ,"repeater"   : "true"
+            ,"help"       : "<p>Output pr (pr_bin.dat) interpolated on grid with fixed binsize (default = 1 A)</p></p><p>OBS: Ensure you have enough number of points in p(r) (set above, default is 70).</p>"
+        }
+	,{
+            "role"       : "input"
+            ,"id"         : "units"
+            ,"label"      : "Units in data (A or nm)"
+	    ,"type"       : "listbox"
+	    ,"values"     : "A (default)~A~nm~nm"
+            ,"repeat"     : "make_pr_bin"
+            ,"help"       : "<p>Units of data, A or nm (default: A)</p>used to set the binsize correctly in pr_bin.dat</p>"
+        }
+	,{
+            "role"       : "input"
+            ,"id"         : "pr_binsize"
+            ,"label"      : "Set binsize (in A)"
+            ,"type"       : "float"
+	    ,"default"    : 1
+            ,"min"        : 0.01
+            ,"max"        : 10
+	    ,"step"       : 0.1
+	    ,"repeat"     : "make_pr_bin"
+            ,"help"       : "<p>Output pr (pr_bin.dat) interpolated on grid with this binsize (default = 1 A)</p>default is 1, min is 0.01 and max is 10.</p><p>OBS: Ensure you have enough number of points in p(r) (set above, default is 70).</p>"
+        }
+        ,{
+            "role"       : "output"
+            ,"id"         : "hroutput"
+            ,"label"      : "<hr> Output files <hr>"
+            ,"type"       : "label"
+            ,"colspan"    : 2
+        }
+        ,{
+            "role"       : "output"
+            ,"id"         : "pr"
+            ,"label"      : "p(r)"
+            ,"type"       : "file"
+            ,"help"       : "The produced p(r) file"
+        }
+	,{
+            "role"       : "output"
+            ,"id"         : "pr_bin"
+            ,"label"      : "p(r) with fixed bin size (if selected)"
+            ,"type"       : "file"
+            ,"help"       : "The produced p(r) file, interpolated on grid with user-defined binsize."
+        }
+        ,{
+            "role"       : "output"
+            ,"id"         : "fitofdata"
+            ,"label"      : "Fit of data"
+            ,"type"       : "file"
+            ,"help"       : "The fit of the data"
+        }
+	,{
+            "role"       : "output"
+            ,"id"         : "fit_q"
+            ,"label"      : "Fit, same q-scale as data"
+            ,"type"       : "file"
+            ,"help"       : "The fit of the data, interpolated onto the same q-scale as the data."
+        }
+        ,{
+            "role"       : "output"
+            ,"id"         : "dataused"
+            ,"label"      : "Data used (rebinned)"
+            ,"type"       : "file"
+            ,"help"       : "The data used, rebinned (if opted for)."
+        }
+        ,{
+            "role"       : "output"
+            ,"id"         : "rescaled"
+            ,"label"      : "Data with errors rescaled (rebinned)"
+            ,"type"       : "file"
+            ,"help"       : "<p>Dataset with errors being rescaled by a correction factor. Rebinned (if opted for).</p><p>See Larsen and Pedersen 2020 [5]</p>"
+        }
+	,{
+            "role"       : "output"
+            ,"id"         : "outlier_filtered"
+            ,"label"      : "Data without worst outliers (if any)"
+            ,"type"       : "file"
+            ,"help"       : "<p>Dataset with worst outlier (with highest magnitude of the normalized residual) being filtered out.</p><p>Potential outliers defined as points with p-value<0.03 with respect to p(r) fit, after multiple testing correction p=p*N, where N is the  number of datapoints</p>"
+        }
+        ,{
+            "role"       : "output"
+            ,"id"         : "scale_factor"
+            ,"label"      : "Correction factor for errors"
+            ,"type"       : "file"
+            ,"help"       : "List of factor(s) by which errors (in rescale.d) has been rescaled. See Larsen and Pedersen 2020 [5]"
+        }
+        ,{
+            "role"       : "output"
+            ,"id"         : "parameters"
+            ,"label"      : "Parameters"
+            ,"type"       : "file"
+            ,"help"       : "The parameters file"
+        }
+	,{
+            "role"       : "output"
+            ,"id"         : "file_stdout"
+            ,"label"      : "Terminal output"
+            ,"type"       : "file"
+            ,"help"       : "A copy of the standard output"
+        }
+        ,{
+            "role"       : "output"
+            ,"id"         : "sourcecode"
+            ,"label"      : "Source code"
+            ,"type"       : "file"
+            ,"help"       : "Source code (needs to be compiled)"
+        }
+#	,{
+#            "role"       : "output"
+#            ,"id"         : "p_table"
+#            ,"label"      : "Table of p-values for Longest run test"
+#            ,"type"       : "file"
+#            ,"help"       : "Used by the source code, bift.f, when calculating cormap p-values."
+#        }
+        ,{
+            "role"       : "output"
+            ,"id"         : "inputfile"
+            ,"label"      : "Input file"
+            ,"type"       : "file"
+            ,"help"       : "Input file (for running locally)"
+        }
+        ,{
+            "role"       : "output"
+            ,"id"         : "zip"
+            ,"label"      : "Results zipped"
+            ,"type"       : "file"
+            ,"help"       : "Results packaged in a zip file"
+        }
+#        ,{
+#            "role"       : "output"
+#            ,"id"         : "tgz"
+#            ,"label"      : "Results tar gzipped"
+#            ,"type"       : "file"
+#            ,"help"       : "Results packaged as a gzipped tar file"
+#        }
+	,{
+            "role"       : "output"
+            ,"id"         : "label_parameters"
+            ,"label"      : "<hr> Structural parameters <hr>"
+            ,"type"       : "label"
+            ,"colspan"    : 2
+        }
+        ,{
+            "role"       : "output"
+            ,"id"         : "dmaxout"
+            ,"label"      : "Dmax"
+            ,"type"       : "text"
+	    ,"help"       : "Maximum distance in particle - same units as the input data: A or nm"
+        }        
+	,{
+            "role"       : "output"
+            ,"id"         : "Rg"
+            ,"label"      : "Rg"
+            ,"type"       : "text"
+	    ,"help"       : "Radius of gyration - same units as the input data: A or nm"
+        }
+	,{
+            "role"       : "output"
+            ,"id"         : "label_I0"
+            ,"label"      : "<hr> Forward scattering and background <hr>"
+            ,"type"       : "label"
+            ,"colspan"    : 2
+        }
+        ,{  
+            "role"       : "output"
+            ,"id"         : "I0"
+            ,"label"      : "I(0) estimated"
+            ,"type"       : "text"
+	    ,"help"       : "Forward scattering"
+        }       
+        ,{
+            "role"       : "output"
+            ,"id"         : "background"
+            ,"label"      : "Background (constant)"
+            ,"type"       : "text"
+	    ,"help"       : "constant background"
+        }	
+	,{
+            "role"       : "output"
+            ,"id"         : "label_errors"
+            ,"label"      : "<hr> Error Assessment <hr>"
+            ,"type"       : "label"
+            ,"colspan"    : 2
+        }
+	,{
+            "role"       : "output"
+            ,"id"         : "chi2"
+            ,"label"      : "Reduced Chi2 (Chi2r)"
+            ,"type"       : "text"
+	    ,"help"       : "Chi2r = Chi2/(M-Ng-1), where M is number of data points. See Larsen and Pedersen 2020 [5]"
+        }
+        ,{
+            "role"       : "output"
+            ,"id"         : "prob"
+            ,"label"      : "Probability of Chi2r, p-value"
+            ,"type"       : "text"
+	    ,"help"       : "probability for Chi2r, given correct errors. See Larsen and Pedersen 2021 [5]"
+        }
+	,{
+            "role"       : "output"
+            ,"id"         : "assess"
+            ,"label"      : "The experimental errors are probably:"
+            ,"type"       : "text"
+	    ,"help"       : "<p>Experimental errors assessed from the Chi2r. Recommended significance criteria: </p><p>the experimental errors are correctly estimated if the probability is above 0.003,</p><p> else they are likely over/underestimated and rescaled errors (in rescale.d) may be used for further data analysis.</p><p>See Larsen and Pedersen 2021 [5]</p>"
+        }
+        ,{
+            "role"       : "output"
+            ,"id"         : "beta"
+            ,"label"      : "Correction factor for errors"
+            ,"type"       : "text"
+	    ,"help"       : "<p>Constant rescaling (default): a constant was used to rescale errors in rescale.d, by:</p><p> sigma_rescaled = c*sigma, where c = sqrt(Chi2r)</p><p>Non-constant rescaling: q-dependent factors were used to rescale errors in rescale.d (indepent in each Shannon-bin):</p><p>sigma_rescaled_bin = c_bin*sigma, where c_bin = sqrt(Chi2r_bin)</p><p>See Larsen and Pedersen 2021 [5]</p>"
+        }
+	,{
+            "role"       : "output"
+            ,"id"         : "label_run"
+            ,"label"      : "<hr>Runs tests <hr>"
+            ,"type"       : "label"
+            ,"colspan"    : 2
+        }
+        ,{
+            "role"       : "output"
+            ,"id"         : "Rmax"
+            ,"label"      : "Longest run"
+            ,"type"       : "text"
+            ,"help"       : "Longest run of model values being above or below corresponding data. Pairwize Cormap test. Franke et al 2015, Nature Methods 12: 419-422. OBS: parameters are averages of all solutions, weighted with probability, therefore this number is not an integer."
+        }
+	,{
+            "role"       : "output"
+            ,"id"         : "Rmax_expect"
+            ,"label"      : "Expected longest run"
+            ,"type"       : "text"
+            ,"help"       : "Expected longest run (Schilling 1990: The longest run of heads)."
+        }
+        ,{
+            "role"       : "output"
+            ,"id"         : "p_Rmax"
+            ,"label"      : "Probability of this longest run"
+            ,"type"       : "text"
+            ,"help"       : "Probability of getting this longest run (or any more extreme value), given the number of data points and that model and data come from the same distribution (Schilling 1990: The longest run of heads)."
+        }
+	,{
+            "role"       : "output"
+            ,"id"         : "NR"
+            ,"label"      : "Number of runs"
+            ,"type"       : "text"
+            ,"help"       : "Number of runs when comparing model and data. Wald-Wolfowitz runs test. OBS: parameters are averages of all solutions, weighted with probability, therefore this number is not an integer."
+        }
+	,{
+            "role"       : "output"
+            ,"id"         : "NR_expect"
+            ,"label"      : "Expected number of runs"
+            ,"type"       : "text"
+            ,"help"       : "Expected number of runs (see, e.g., the Wikipedia entry on Wald-Wolfowitz runs test)."
+        }
+	,{
+            "role"       : "output"
+            ,"id"         : "p_NR"
+            ,"label"      : "Probability of this number of runs"
+            ,"type"       : "text"
+            ,"help"       : "Probability of getting this number of runs (or any more extreme value). Assuming number or runs are normal distributed (see, e.g., the Wikipedia entry on Wald-Wolfowitz runs test)."
+        }
+	,{
+            "role"       : "output"
+            ,"id"         : "label_outlier"
+            ,"label"      : "<hr>Outlier analysis <hr>"
+            ,"type"       : "label"
+            ,"colspan"    : 2
+        }
+	,{
+            "role"       : "output"
+            ,"id"         : "Noutlier"
+            ,"label"      : "Number of potential outliers"
+            ,"type"       : "text"
+            ,"help"       : "Potential outlier is a datapoint with p-value below 0.03, given fit is true. After Benferroni multiple test correction p = p*N, where N is the number of data points. Shown in plot if opted for. Data without the worst outlier (having largest magnitude of the normalized residual) is provided as outlier_filtered.dat."
+        }
+	,{
+            "role"       : "output"
+            ,"id"         : "label_info"
+            ,"label"      : "<hr>Information content <hr>"
+            ,"type"       : "label"
+            ,"colspan"    : 2
+        }
+        ,{
+            "role"       : "output"
+            ,"id"         : "Ng"
+            ,"label"      : "Ng (Number of good parameters)"
+            ,"type"       : "text"
+            ,"help"       : "Number of good parameters. See Hansen 2006 [5]"
+        }
+        ,{
+            "role"       : "output"
+            ,"id"         : "shannon"
+            ,"label"      : "Number of Shannon channels"
+            ,"type"       : "text"
+            ,"help"       : "Number of Shannon channels"
+	}
+        ,{
+            "role"       : "output"
+            ,"id"         : "label_alpha"
+            ,"label"      : "<hr>Prior and estimation of alpha <hr>"
+            ,"type"       : "label"
+            ,"colspan"    : 2
+        }
+        ,{
+            "role"       : "output"
+            ,"id"         : "logalpha"
+            ,"label"      : "log(alpha)"
+            ,"type"       : "text"
+	    ,"help"       : "Lagrange multiplier. Chi2 + alpha*S was minimized in the fit. S is the smoothness prior. See Hansen 2000 [1]"
+        }
+        ,{
+            "role"       : "output"
+            ,"id"         : "evidence"
+            ,"label"      : "Evidence at maximum"
+            ,"type"       : "text"
+	    ,"help"       : "Evidence for the solution, used to determine the most probable alpha. See Hansen 2000 [1]"
+        }
+#        ,{
+#            "role"       : "output"
+#            ,"id"         : "axratio_pro"
+#            ,"label"      : "Axial ratio from p(r) (pro)"
+#            ,"type"       : "text"
+#            ,"help"       : "Axis ratio, prior. See Hansen 2014 [3]"
+#        }
+#        ,{
+#            "role"       : "output"
+#            ,"id"         : "axratio_obl"
+#            ,"label"      : "Axial ratio from p(r) (obl)"
+#            ,"type"       : "text"
+#            ,"help"       : "Axis ratio, prior. See Hansen 2014 [3]"
+#        }
+        ,{
+            "role"       : "output"
+            ,"id"         : "hroutput3"
+            ,"label"      : "<hr>"
+            ,"type"       : "label"
+            ,"colspan"    : 2
+        }
+        ,{
+            "role"       : "output"
+            ,"id"         : "prfig"
+            ,"label"      : ""
+            ,"type"       : "image"
+            ,"width"      : "50%"
+        }
+        ,{
+            "role"       : "output"
+            ,"id"         : "iqfig"
+            ,"label"      : ""
+            ,"type"       : "image"
+            ,"width"      : "50%"
+        }
+        ,{
+            "role"       : "output"
+            ,"id"         : "rescalefig"
+            ,"label"      : ""
+            ,"type"       : "image"
+            ,"width"      : "50%"
+        }
+        ,{
+            "role"       : "output"
+            ,"id"         : "iqrsfig"
+            ,"label"      : ""
+            ,"type"       : "image"
+            ,"width"      : "50%"
+        }
+    ]
+}

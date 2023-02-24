@@ -29,7 +29,7 @@ c   line 11: number of points in p(r)      or a blank line   [integer]
 c   line 12: number of extra calc          or a blank line   [integer]
 c   line 13: transformation                or a blank line   [D]ebye (default) or [N]egative or [M]axEnt or [B]essel or [S]ize
 c   line 14: fit constant background       or a blank line   [Y]es or [N]o
-c   line 15: non-const rescaling           or a blank line   [N]on-constant or [C]onstant or [I]ntensity-dependent
+c   line 15: non-const rescaling           or a blank line   [N]on-constant or [C]onstant
 c   line 16: min points per Shannon bin    or a blank line   [integer]
 c
 c   * use prefix "f" to Fix value, i.e. f22.0 instead of 22.0 for d_max
@@ -81,7 +81,7 @@ C*******************************************************************************
       parameter (ndim=4)
 
       PARAMETER (ngmax=100)
-      REAL sumsquare(ngmax),countn(ngmax),betan(ngmax),betani(NMAX)
+      REAL sumsquare(ngmax),countn(ngmax),betan(ngmax)
 
       external func
       REAL A(NMAX,0:NMAX),B(0:NMAX,0:NMAX),Adec(NMAX,0:NMAX)
@@ -226,10 +226,7 @@ c*************************************************************
         if((x1.gt.50).and.(k.le.10)) backspace 1
         if((x1.gt.50).and.(k.le.10)) goto 22
       if(sd1.le.0) ndata0=0
-c check q-range
       if((x1.lt.qmin).or.(x1.gt.qmax)) goto 22
-c exclude points with I=sigma=0 (due to beamstop etc)
-      if((y1.eq.0).and.(sd1.eq.0)) goto 22
       ndata=ndata+1
 c write data to dummy.dat (111)
       write(111,*)x1,y1,sd1
@@ -620,7 +617,6 @@ c ratio is fitted by evidence
 
       if(answer8.eq.'c') answer8='C'
       if(answer8.eq.'n') answer8='N'      
-      if(answer8.eq.'i') answer8='I'      
 
       WRITE(6,9134)
  9134 FORMAT(1X,'Minimum number of points per Shannon bin => ',$)
@@ -1241,9 +1237,6 @@ c runmax average
       runmaxav=0
 c runtotal averate
       runtotav=0
-c run_plus and run_minus
-      runminusav=0
-      runplusav=0      
       fm1=0
       etaav=0
       eta=0
@@ -1273,8 +1266,6 @@ c run_plus and run_minus
       sumng=sumng+ftot(nmax-12,nof)*prob(nof)
       runmaxav=runmaxav+ftot(nmax-14,nof)*prob(nof)
       runtotav=runtotav+ftot(nmax-15,nof)*prob(nof)
-      runminusav=runminusav+ftot(nmax-16,nof)*prob(nof)
-      runplusav=runplusav+ftot(nmax-17,nof)*prob(nof)
 c      write(155,*)nof,ftot(nmax-12,nof),prob(nof)
  1132 continue
       
@@ -1471,7 +1462,7 @@ c       CALL SUB1(anr,Ndata,runmax,DUMSUB)
 c      EXTERNAL SUB1
 c      CALL SUB1(pval_runmax,6,3,SUB1)
 c      runmaxint=nint(runmaxav)
-c      nrunmaxav=nint(runmaxav)
+      nrunmaxav=nint(runmaxav)
 c      CALL SUB1(pval_runmax,mtotxx,nrunmaxav,SUB1)
 c      CALL SUB1(anr,25,4,SUB1)
 c      pval_runmax=anr/2**25
@@ -1481,142 +1472,50 @@ c      ncols=nrunmaxav-1
 c      nrows=mtotxx-1
 c      ncols=10
 c      nrows=4
-c      open(unit=137,file='p_table.dat',status='old')
+      open(unit=137,file='p_table.dat',status='old')
 c      DO 152 i=1,26
-c      DO 151 j=1,mtotxx+1
+      DO 151 j=1,mtotxx+1
 c      read(137,*)p_tmp1,p_tmp2,p_tmp3
-c      read(137,*)prow
+      read(137,*)prow
 c      read(137,*)ptable(j,:)
 c     include -1 because of 0-indexing in table.
 c      ptable(j-1,i-1)=p_tmp
 c      write(6,*)p_tmp1,p_tmp2,p_tmp3
 c      write(6,*)ptable(j,:)
-c  151 CONTINUE
+  151 CONTINUE
 c  152 CONTINUE
-c      close(137)
+      close(137)
 c      write(6,*)prow
-c      if (nrunmaxav.gt.25) then
-c        pval_runmax=0.0
-c      else
-c        pval_runmax=prow(nrunmaxav+1)
-c      endif
-c     account for double-sided
-c      pval_runmax = pval_runmax*2.0
-c     get expectation value (Schilling1990: the longest run of heads)
-c     use: logN(x) = log(x)/log(N) 
-c      av_runmax=log2(mtotxx)-1.
-c     add and subtract 1 to convert mtotxx from int to real
-c      av_runmax=log(mtotxx+1.0-1.0)/log(2.)-1.
-c     reduced runmax:
-      av_runmax=log(DoF)/log(2.)-1.
-c      av_runmax=log2(DoF)-1.
-c      av_runmax=log(mtotxx+1.0-1.0)/log(2.)-2./3.
-      var_runmax=pi**2./6.*log(2.)**2+1./12.
-      sigma_runmax=sqrt(var_runmax)
-c      pval_runmax=ptable(mtotxx,nrunmaxav)
-      x0_rm = runmaxav-av_runmax
-      pval_runmax = 1-exp(-0.5**(x0_rm+1.))
-c     two-tailed (Kofinger and Hummer 2023)
-      if(pval_runmax.lt.0.5)then
-          pval_runmax = 2.*pval_runmax
+      if (nrunmaxav.gt.25) then
+        pval_runmax=0.0
       else
-          pval_runmax = 2.*(1-pval_runmax)
+        pval_runmax=prow(nrunmaxav+1)
       endif
-
-c      xmin = av_runmax-50.
-c      kmax = 500
-c      xstep = 150./kmax
-c      kloop: do k=1,kmax
-c          x_k = xmin+k*xstep
-c          d_rm=
-
+c      pval_runmax=ptable(mtotxx,nrunmaxav)
 c*********************************************
-c     Calculate total number of runs (rt) p-value
+c     Calculate total number of runs p-value
 c*********************************************
-c       av_rt = 2.*runplusav*runminusav/(mtotxx+1.0-1.0)+1.
-c       var_rt = (av_rt-1.)*(av_rt-2.)/(mtotxx-1.)
-c      reduced runmax and variance
-       av_rt = 1+2.*runplusav*runminusav/DoF
-       var_rt = (av_rt-1.)*(av_rt-2.)/(DoF-1.)
-       sum_rt=0
-       sum_all=0
-       sigma_rt=var_rt**0.5
-       xmin = av_rt-8.0*sigma_rt
-       kmax = 500
-       xstep = 2.*8.*sigma_rt/kmax
-       kloop: do k=1,kmax
-         x_k=xmin+k*xstep
-         d_rt=exp(-(av_rt-x_k)**2.0/var_rt/2.0)
-         sum_all=sum_all+d_rt
-         if(x_k.le.runtotav)then
-           sum_rt=sum_rt+d_rt
-         endif
-       end do kloop
-c      calculate p-value       
-       pval_runtot = sum_rt/sum_all
-c      two-sided
-       if(pval_runtot.lt.0.5)then
-           pval_runtot = 2.*pval_runtot
-       else
-           pval_runtot = 2.*(1.-pval_runtot)
-       endif
-
+c      pval_runtot=0.5
 c*********************************************
 c     Correct errors
 c*********************************************
-
-c     constant correction
       chi2r=chi2/DoF
       schi2r=scav*mtotxx/DoF
-c      beta=sqrt(chi2r)
-
-c     rescale error only if significant
-      if(pval.le.0.003) then
-        beta=sqrt(chi2r)
-      else
-        beta=1.0
-      endif
-
-c     intensity-dependent correction      
-      ai_opt=0.0
-      if(pval.le.0.003) then
-        diff_min = abs(chi2-DoF)
-        jjloop: do jj=1,1000
-          ai=10.**(-6.+jj*0.007)
-          sumres=0.0
-          iloop: do i=1,mtotxx
-            sda = sdori(i)+ai*y(i)
-            resa=(fm(20+i)-y(i))/sda
-            sumres=sumres+resa**2
-          end do iloop
-          diff = abs(sumres-DoF)
-          if(diff.lt.diff_min)then
-            diff_min = diff
-            ai_opt=ai
-          endif
-        end do jjloop
-      endif
-
-c     output
+      beta=sqrt(chi2r)
       OPEN(21,FILE='rescale.dat',STATUS='UNKNOWN')
       OPEN(22,FILE='scale_factor.dat',STATUS='UNKNOWN')
       write(21,*)'# q,I,sigma'
       write(22,*)'# errors in rescale.dat are rescaled with factors:'
-      write(22,*)'# q    scale factor'
       if(answer8.eq.'N') then
         write(21,*)'# errors rescaled with q-dependent factor'
-        write(21,*)'# see factors in scale_factor.dat'
-      else if(answer8.eq.'I') then
-        write(21,*)'# errors rescaled with I-dependent factor'
         write(21,*)'# see factors in scale_factor.dat'
       else
         write(21,*)'# errors rescaled with constant factor: ', beta
         write(21,*)'# factor also written to scale_factor.dat'
       endif
-
-c     non-constant correction
       n=1
       ns=1
+      nbintest=100
       sumsquare=0.0
       countn=1.0
       do 111,i=1,mtotxx
@@ -1633,22 +1532,22 @@ c       qmax for ns'th shannon channel
         sumsquare(n)=sumsquare(n)+res*res
         countn(n)=countn(n)+1.0
   111 continue
-        do 112,i=1,n
+      do 112,i=1,n
 c       calculate chi2r for bin (chi2rn)
         ngpartial=sumng/(1.0*mtotxx)*countn(i)
-        DoFn=countn(i)-ngpartial
+        DoF=countn(i)-ngpartial
         chi2n=sumsquare(i)
-        chi2rn=chi2n/DoFn
+        chi2rn=chi2n/DoF
 c       calculate p value for chi2rn
-        pvaln1=gammp(DoFn*.5,chi2n*.5)
-        pvaln2=gammq(DoFn*.5,chi2n*.5)
+        pvaln1=gammp(DoF*.5,chi2n*.5)
+        pvaln2=gammq(DoF*.5,chi2n*.5)
         if(pvaln1.le.pvaln2)then
           pvaln=2.*pvaln1
         else
           pvaln=2.*pvaln2
         endif
 c       correction for multiple testing
-        pvaln=pvaln*n
+        pvaln=pvaln*firstsh
 c       rescale error only if significant
         if(pvaln.le.0.003) then
           betan(i)=sqrt(chi2rn)
@@ -1656,15 +1555,6 @@ c       rescale error only if significant
           betan(i)=1.0
         endif
   112 continue
-
-c     smooth betan --> betansm
-      if(mod(nbin,2).eq.0)then
-        wingsize=nbin/2
-      else
-        wingsize=(nbin-1)/2
-      endif
-
-c     generate betani for smoothing
       n=1
       ns=1
       countn=1.0
@@ -1678,68 +1568,18 @@ c     generate betani for smoothing
           endif
         endif
         countn(n)=countn(n)+1.0
-        betani(i)=betan(n)
-  113 continue
-
-c     rescale errors
-      n=1
-      ns=1
-      countn=1.0
-      do 114, i=1,mtotxx
-        rest=mtotxx-i
-        qn=ns*pi/Dmax
-        if(xori(i).gt.qn) then
-          ns=ns+1
-          if(countn(n).gt.nbin.and.rest.gt.nbin) then
-            n=n+1
-          endif
-        endif
-        countn(n)=countn(n)+1.0
-
-c       constant rescaling
+        sd0=sdori(i)
         sd1=sdori(i)*beta
-
-c       smooth betani --> betansm
-        if(i.eq.1.or.i.eq.mtotxx)then
-          betansm = betani(i)
-        else
-          if(i.le.wingsize)then
-            jmax=i-1
-          else if(rest.lt.wingsize)then
-            jmax=rest
-          else
-            jmax=wingsize
-          endif
-          sumsm = betani(i)*jmax
-          norm = jmax
-          jloop: do j=1,jmax
-            sumsm=sumsm+(jmax-j)*betani(i-j)+(jmax-j)*betani(i+j)
-            norm=norm+2*(jmax-j)
-          end do jloop
-          betansm=sumsm/norm
-        endif
-
-c       non-constant rescaling
-c        sd2=sdori(i)*betan(n)
-c        chi=betan(n)*betan(n)
-        sd2=sdori(i)*betansm
-        chi=betan(n)*betansm
-
-c       intensity-dependent correction of errors
-        sd3=sdori(i)+ai_opt*y(i)
-
+        sd2=sdori(i)*betan(n)
+        chi=betan(n)*betan(n)
         if(answer8.eq.'N') then
           write(21,*)xori(i),y(i),sd2
-c          write(22,*)xori(i),betan(n)
-          write(22,*)xori(i),betansm
-        else if(answer8.eq.'I') then
-          write(21,*)xori(i),y(i),sd3
-          write(22,*)xori(i),sd3/sdori(i)
+          write(22,*)betan(n)
         else
           write(21,*)xori(i),y(i),sd1
-          write(22,*)xori(i),beta
+          write(22,*)beta
         endif
-  114 continue
+  113 continue
 c*********************************************
 c     Start OUTPUT for download for p(r) only
 c*********************************************
@@ -1855,27 +1695,18 @@ c  978 format(1x,'Number of Shannon channels, qrange*(dmax/pi): ',f9.2)
   980 format(1x,'The exp errors are probably: ',a)
       write(166,981)sqrt(chi2r)
   981 format(1x,'Correction factor          : ',f9.2)
-      write(166,926)ai_opt
-  926 format(1x,'Optimal ai (dI+=ai*I)      : ',e9.2)
       write(166,982)runmaxav
   982 format(1x,'Longest run                : ',f9.2)
 c      write(166,984)sumpart
 c  984 format(1x,'Prob., longest run (cormap): ',e9.4)
 c      write(166,988)sumtot 
 c  988 format(1x,'Prob., longest run (cormap): ',e9.4)
-      write(166,984)av_runmax,sigma_runmax
-  984 format(1x,'Expected longest run       : ',f9.2
-     -'  +- ',f8.2,' ')
       write(166,989)pval_runmax
-c      write(166,989)pval_rm
   989 format(1x,'Prob., longest run (cormap): ',e9.4)
       write(166,985)runtotav
   985 format(1x,'Number of runs             : ',f9.2)
-      write(166,988)av_rt,sigma_rt
-  988 format(1x,'Expected number of runs    : ',f9.2,
-     -'  +- ',f8.2,' ')
-      write(166,987)pval_runtot
-  987 format(1x,'Prob.,  number of runs     : ',e9.2)
+c      write(166,987)pval_runtot
+c  987 format(1x,'Prob.,  number of run      : ',e9.2)
       write(166,*)
       call system_clock(clock)
       cpu=(clock-clockold)*0.001
@@ -1912,8 +1743,7 @@ c      close(137)
   904 FORMAT(1X,'p_excl(r) in          :  ',A)
       WRITE(6,901)FNAME
   901 FORMAT(1X,'Fit of data in        :  ',A)
-c      WRITE(6,902)mtotxx
-c  902 FORMAT(1X,'Number of data points :  ',f9.0)    
+
       WRITE(6,912)hxNAME
   912 FORMAT(1X,'Data used in          :  ',A)
       if(etaest.ne.0) WRITE(6,910)sNAME
@@ -1922,24 +1752,14 @@ c  902 FORMAT(1X,'Number of data points :  ',f9.0)
   916 FORMAT(1X,'Error-rescaled data in:  ',A)
       WRITE(6,917)'scale_factor.dat'
   917 FORMAT(1X,'Scale factor(s) in    :  ',A)
-      write(6,927)ai_opt
-  927 format(1x,'Optimal ai (dI+=ai*I) : ',e9.2)
       WRITE(6,919)'parameters.dat'
   919 FORMAT(1X,'Parameters in         :  ',A)
       WRITE(6,920)runmaxav
   920 FORMAT(1X,'Longest run Rmax      :  ',f9.1)
-      WRITE(6,925)av_runmax,sigma_runmax
-  925 FORMAT(1X,'Expected longest run  :  ',f9.4
-     -'  +- ',f8.2,' ')
       WRITE(6,921)pval_runmax
-  921 FORMAT(1X,'Prob., longest run    :  ',e9.4) 
+  921 FORMAT(1X,'prob of R>=Rmax       :  ',e9.4) 
       WRITE(6,922)runtotav
-  922 FORMAT(1X,'Number of runs        :  ',f9.1)   
-      write(6,923)av_rt,sigma_rt
-  923 format(1x,'Expected no. of runs  : ',f9.2,
-     -'  +- ',f8.2,' ')
-      write(6,924)pval_runtot
-  924 format(1x,'Prob.,  no. of runs   : ',e9.2)
+  922 FORMAT(1X,'Number of runs        :  ',f9.1)     
       write(6,*)
       write(6,947)cpu
   947 format(1x,'CPU time used         :  ',f9.1,
@@ -2510,8 +2330,6 @@ c**************************************************************************
       RUN=0
       RUN_MAX=0
       RUN_TOT=1
-      RUN_MINUS=0
-      RUN_PLUS=0
       RUN_VALUE_PREV=0
       GRADSI=0
       WGRADS=0
@@ -2545,24 +2363,21 @@ c loop over all solutions to get model value
 c     calculate chi2
       CADD=(Y(I)-FM(I))**2/SD(I)
       C=C+CADD
-
 c     calculate cormap and runs test      
       if (Y(I).le.FM(I)) then
-        RUN_VALUE=-1
-        RUN_MINUS=RUN_MINUS+1
+      RUN_VALUE=-1
       else
-        RUN_VALUE=1
-        RUN_PLUS=RUN_PLUS+1
+      RUN_VALUE=1
       endif
 
       if (RUN_VALUE.eq.RUN_VALUE_PREV) then
-        RUN=RUN+1
-        if (RUN.gt.RUN_MAX) then
-          RUN_MAX=RUN
-        endif
+      RUN=RUN+1
+      if (RUN.ge.RUN_MAX) then
+      RUN_MAX=RUN
+      endif
       else
-        RUN=1
-        RUN_TOT=RUN_TOT+1
+      RUN=0
+      RUN_TOT=RUN_TOT+1
       endif
       RUN_VALUE_PREV=RUN_VALUE
 
@@ -2747,8 +2562,6 @@ c     -,c,ratio,DOTSP,f(20),evidence
       ftot(nmax-11,nof)=ratio
       ftot(nmax-14,nof)=run_max
       ftot(nmax-15,nof)=run_tot
-      ftot(nmax-16,nof)=run_minus
-      ftot(nmax-17,nof)=run_plus
       nof=nof+1
       if(nof.gt.ndist) then
       write(6,*)'Error - too slow convergence => too many files'
@@ -3869,12 +3682,6 @@ c      write(6,*)'very small probability for Chi2r'
       gammln=tmp+log(stp*ser/x)
       return
       END
-
-c      FUNCTION log2(x)
-c      REAL log2,x
-c      log2=log(x)/log(2.0)
-c      return 
-c      END
 
 c      FUNCTION bico(n,k)
 c      INTEGER k,n

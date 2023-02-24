@@ -29,7 +29,7 @@ c   line 11: number of points in p(r)      or a blank line   [integer]
 c   line 12: number of extra calc          or a blank line   [integer]
 c   line 13: transformation                or a blank line   [D]ebye (default) or [N]egative or [M]axEnt or [B]essel or [S]ize
 c   line 14: fit constant background       or a blank line   [Y]es or [N]o
-c   line 15: non-const rescaling           or a blank line   [N]on-constant or [C]onstant or [I]ntensity-dependent
+c   line 15: non-const rescaling           or a blank line   [N]on-constant or [C]onstant
 c   line 16: min points per Shannon bin    or a blank line   [integer]
 c
 c   * use prefix "f" to Fix value, i.e. f22.0 instead of 22.0 for d_max
@@ -226,10 +226,7 @@ c*************************************************************
         if((x1.gt.50).and.(k.le.10)) backspace 1
         if((x1.gt.50).and.(k.le.10)) goto 22
       if(sd1.le.0) ndata0=0
-c check q-range
       if((x1.lt.qmin).or.(x1.gt.qmax)) goto 22
-c exclude points with I=sigma=0 (due to beamstop etc)
-      if((y1.eq.0).and.(sd1.eq.0)) goto 22
       ndata=ndata+1
 c write data to dummy.dat (111)
       write(111,*)x1,y1,sd1
@@ -620,7 +617,6 @@ c ratio is fitted by evidence
 
       if(answer8.eq.'c') answer8='C'
       if(answer8.eq.'n') answer8='N'      
-      if(answer8.eq.'i') answer8='I'      
 
       WRITE(6,9134)
  9134 FORMAT(1X,'Minimum number of points per Shannon bin => ',$)
@@ -1506,10 +1502,7 @@ c     get expectation value (Schilling1990: the longest run of heads)
 c     use: logN(x) = log(x)/log(N) 
 c      av_runmax=log2(mtotxx)-1.
 c     add and subtract 1 to convert mtotxx from int to real
-c      av_runmax=log(mtotxx+1.0-1.0)/log(2.)-1.
-c     reduced runmax:
-      av_runmax=log(DoF)/log(2.)-1.
-c      av_runmax=log2(DoF)-1.
+      av_runmax=log(mtotxx+1.0-1.0)/log(2.)-1.
 c      av_runmax=log(mtotxx+1.0-1.0)/log(2.)-2./3.
       var_runmax=pi**2./6.*log(2.)**2+1./12.
       sigma_runmax=sqrt(var_runmax)
@@ -1533,11 +1526,8 @@ c          d_rm=
 c*********************************************
 c     Calculate total number of runs (rt) p-value
 c*********************************************
-c       av_rt = 2.*runplusav*runminusav/(mtotxx+1.0-1.0)+1.
-c       var_rt = (av_rt-1.)*(av_rt-2.)/(mtotxx-1.)
-c      reduced runmax and variance
-       av_rt = 1+2.*runplusav*runminusav/DoF
-       var_rt = (av_rt-1.)*(av_rt-2.)/(DoF-1.)
+       av_rt = 2.*runplusav*runminusav/(mtotxx+1.0-1.0)+1.
+       var_rt = (av_rt-1.)*(av_rt-2.)/(mtotxx-1.)
        sum_rt=0
        sum_all=0
        sigma_rt=var_rt**0.5
@@ -1564,40 +1554,9 @@ c      two-sided
 c*********************************************
 c     Correct errors
 c*********************************************
-
-c     constant correction
       chi2r=chi2/DoF
       schi2r=scav*mtotxx/DoF
-c      beta=sqrt(chi2r)
-
-c     rescale error only if significant
-      if(pval.le.0.003) then
-        beta=sqrt(chi2r)
-      else
-        beta=1.0
-      endif
-
-c     intensity-dependent correction      
-      ai_opt=0.0
-      if(pval.le.0.003) then
-        diff_min = abs(chi2-DoF)
-        jjloop: do jj=1,1000
-          ai=10.**(-6.+jj*0.007)
-          sumres=0.0
-          iloop: do i=1,mtotxx
-            sda = sdori(i)+ai*y(i)
-            resa=(fm(20+i)-y(i))/sda
-            sumres=sumres+resa**2
-          end do iloop
-          diff = abs(sumres-DoF)
-          if(diff.lt.diff_min)then
-            diff_min = diff
-            ai_opt=ai
-          endif
-        end do jjloop
-      endif
-
-c     output
+      beta=sqrt(chi2r)
       OPEN(21,FILE='rescale.dat',STATUS='UNKNOWN')
       OPEN(22,FILE='scale_factor.dat',STATUS='UNKNOWN')
       write(21,*)'# q,I,sigma'
@@ -1606,22 +1565,20 @@ c     output
       if(answer8.eq.'N') then
         write(21,*)'# errors rescaled with q-dependent factor'
         write(21,*)'# see factors in scale_factor.dat'
-      else if(answer8.eq.'I') then
-        write(21,*)'# errors rescaled with I-dependent factor'
-        write(21,*)'# see factors in scale_factor.dat'
       else
         write(21,*)'# errors rescaled with constant factor: ', beta
         write(21,*)'# factor also written to scale_factor.dat'
       endif
-
-c     non-constant correction
       n=1
       ns=1
+c      nbintest=100
       sumsquare=0.0
       countn=1.0
+c      nbin=10
       do 111,i=1,mtotxx
 c       qmax for ns'th shannon channel
         qn=ns*pi/Dmax
+c        qn=0.00000001
         res=(fm(20+i)-y(i))/sdori(i)
         if(xori(i).gt.qn) then
           ns=ns+1
@@ -1636,12 +1593,12 @@ c       qmax for ns'th shannon channel
         do 112,i=1,n
 c       calculate chi2r for bin (chi2rn)
         ngpartial=sumng/(1.0*mtotxx)*countn(i)
-        DoFn=countn(i)-ngpartial
+        DoF=countn(i)-ngpartial
         chi2n=sumsquare(i)
-        chi2rn=chi2n/DoFn
+        chi2rn=chi2n/DoF
 c       calculate p value for chi2rn
-        pvaln1=gammp(DoFn*.5,chi2n*.5)
-        pvaln2=gammq(DoFn*.5,chi2n*.5)
+        pvaln1=gammp(DoF*.5,chi2n*.5)
+        pvaln2=gammq(DoF*.5,chi2n*.5)
         if(pvaln1.le.pvaln2)then
           pvaln=2.*pvaln1
         else
@@ -1656,7 +1613,6 @@ c       rescale error only if significant
           betan(i)=1.0
         endif
   112 continue
-
 c     smooth betan --> betansm
       if(mod(nbin,2).eq.0)then
         wingsize=nbin/2
@@ -1695,8 +1651,7 @@ c     rescale errors
           endif
         endif
         countn(n)=countn(n)+1.0
-
-c       constant rescaling
+        sd0=sdori(i)
         sd1=sdori(i)*beta
 
 c       smooth betani --> betansm
@@ -1719,25 +1674,18 @@ c       smooth betani --> betansm
           betansm=sumsm/norm
         endif
 
-c       non-constant rescaling
 c        sd2=sdori(i)*betan(n)
 c        chi=betan(n)*betan(n)
         sd2=sdori(i)*betansm
         chi=betan(n)*betansm
 
-c       intensity-dependent correction of errors
-        sd3=sdori(i)+ai_opt*y(i)
-
         if(answer8.eq.'N') then
           write(21,*)xori(i),y(i),sd2
-c          write(22,*)xori(i),betan(n)
+c          write(22,*)betan(n)
           write(22,*)xori(i),betansm
-        else if(answer8.eq.'I') then
-          write(21,*)xori(i),y(i),sd3
-          write(22,*)xori(i),sd3/sdori(i)
         else
           write(21,*)xori(i),y(i),sd1
-          write(22,*)xori(i),beta
+          write(22,*)beta
         endif
   114 continue
 c*********************************************
@@ -1855,8 +1803,6 @@ c  978 format(1x,'Number of Shannon channels, qrange*(dmax/pi): ',f9.2)
   980 format(1x,'The exp errors are probably: ',a)
       write(166,981)sqrt(chi2r)
   981 format(1x,'Correction factor          : ',f9.2)
-      write(166,926)ai_opt
-  926 format(1x,'Optimal ai (dI+=ai*I)      : ',e9.2)
       write(166,982)runmaxav
   982 format(1x,'Longest run                : ',f9.2)
 c      write(166,984)sumpart
@@ -1922,8 +1868,6 @@ c  902 FORMAT(1X,'Number of data points :  ',f9.0)
   916 FORMAT(1X,'Error-rescaled data in:  ',A)
       WRITE(6,917)'scale_factor.dat'
   917 FORMAT(1X,'Scale factor(s) in    :  ',A)
-      write(6,927)ai_opt
-  927 format(1x,'Optimal ai (dI+=ai*I) : ',e9.2)
       WRITE(6,919)'parameters.dat'
   919 FORMAT(1X,'Parameters in         :  ',A)
       WRITE(6,920)runmaxav
@@ -3872,7 +3816,7 @@ c      write(6,*)'very small probability for Chi2r'
 
 c      FUNCTION log2(x)
 c      REAL log2,x
-c      log2=log(x)/log(2.0)
+c      log2=log(x-1.0+1.0)/log(2.0)
 c      return 
 c      END
 

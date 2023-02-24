@@ -31,9 +31,6 @@ if __name__=='__main__':
     noextracalc = json_variables['noextracalc'] # number of extra calculations
     transformation = json_variables['transform'] # transformation method
     folder = json_variables['_base_directory'] # output folder dir
-    rescale_mode = json_variables['rescale_mode'] # model name
-    if rescale_mode == 'N':
-        nbin = json_variables['binsize']
 
     ## messaging
     d = genapp(json_variables)
@@ -77,6 +74,7 @@ if __name__=='__main__':
     except:
         eta = 'default'
         R_HS = 'default'
+    """
     try:
         dummy = json_variables['nonconstantrescale']
         rescale = 'N'
@@ -89,7 +87,6 @@ if __name__=='__main__':
         outlier = 1
     except: 
         outlier = 0
-    """
     try:
         dummy = json_variables['logx']
         logx = 1
@@ -119,10 +116,8 @@ if __name__=='__main__':
     f.write('%s\n' % noextracalc)
     f.write('%s\n' % transformation)
     f.write('%s\n' % fitbackground)
-    #f.write('%s\n' % rescale) # rescale method. N: non-constant, C: constant
-    f.write('%s\n' % rescale_mode) # rescale method. N: non-constant, C: constant, I: intensity-dependent
-    #if rescale == 'N':
-    if rescale_mode == 'N':
+    f.write('%s\n' % rescale) # rescale method. N: non-constant, C: constant
+    if rescale == 'N':
         f.write('%s\n' % nbin)
     else:
         f.write('\n')
@@ -293,23 +288,6 @@ if __name__=='__main__':
     R_rs = (Idat-Ifit_interp)/sigma_rs
     maxR_rs = np.ceil(np.amax(abs(R_rs)))
 
-    ## calc a_opt in dI+aI correction
-    #dof = len(qdat)-Ng-1
-    #a_exp = np.linspace(-6,1,300)
-    #a = 10**a_exp
-    #a_opt = 0.0
-    #diff_min = abs(np.sum(R**2) - dof) # reduced chi2 as close to unity as possible
-    #for ai in a:
-    #    sigma_a = sigma+ai*Idat
-    #    R_a = (Idat-Ifit_interp)/sigma_a
-    #    diff = abs(np.sum(R_a**2)-dof)
-    #    if diff<diff_min:
-    #        diff_min = diff
-    #        a_opt=ai
-    #I0 = a_opt # uncomment to output
-    #sigma_a = sigma+a_opt*Idat
-    #R_a = (Idat-Ifit_interp)/sigma_a
-
     ## outlier analysis
     x = np.linspace(-10,10,1000)
     pdx = np.exp(-x**2/2)
@@ -322,15 +300,14 @@ if __name__=='__main__':
     p *= len(R) #correction for multiple testing
     idx = np.where(p<0.03)
     Noutlier = len(idx[0])
-    idx_max = np.argmax(abs(R))
-    if Noutlier:
-        with open('outlier_filtered.dat','w') as f:
-            f.write('# data, with worst outliers filtered out\n')
-            #f.write('# %d outliers were removed\n' % Noutlier)
-            for i in range(len(R)):
-                #if i in idx[0]:
-                if i!=idx_max:
-                    f.write('%e %e %e\n' % (qdat[i],Idat[i],sigma[i]))
+    with open('outlier_filtered.dat','w') as f:
+        f.write('# data, with outliers filtered out\n')
+        f.write('# %d outliers were removed\n' % Noutlier)
+        for i in range(len(R)):
+            if i in idx[0]:
+                pass
+            else:
+                f.write('%e %e %e\n' % (qdat[i],Idat[i],sigma[i]))
 
     ## plot p(r)
     plt.errorbar(r,pr,yerr=d_pr,marker='.',markersize=markersize,linewidth=linewidth,color='black',label='p(r)')
@@ -360,27 +337,26 @@ if __name__=='__main__':
     if logx:
         p1.set_xscale('log')
         p1.plot(qdat,Idat*0,linewidth=linewidth,color='black',zorder=1)
-        if Noutlier:
+        if outlier:
             p1.plot(qdat,-3*np.ones(len(Idat)),linewidth=linewidth,linestyle='--',color='grey',zorder=2,label=r'$\pm 3\sigma$')
             p1.plot(qdat,3*np.ones(len(Idat)),linewidth=linewidth,linestyle='--',color='grey',zorder=3)
     else:
         p1.plot(qfit,Ifit*0,linewidth=linewidth,color='black',zorder=1)
-        if Noutlier:
+        if outlier:
             p1.plot(qfit,-3*np.ones(len(Ifit)),linewidth=linewidth,linestyle='--',color='grey',zorder=2,label=r'$\pm 3\sigma$')
             p1.plot(qfit,3*np.ones(len(Ifit)),linewidth=linewidth,linestyle='--',color='grey',zorder=3)
 
     ## plot outliers
-    if Noutlier:
-        p0.plot(qdat[idx],Idat[idx],linestyle='none',marker='o',markerfacecolor='none',markeredgecolor='grey',zorder=4,label='potential outliers')
-        p1.plot(qdat[idx],R[idx],linestyle='none',marker='o',markerfacecolor='none',markeredgecolor='grey',zorder=4)
-        p0.plot(qdat[idx_max],Idat[idx_max],linestyle='none',marker='o',markerfacecolor='none',markeredgecolor='black',zorder=4,label='worst outliers')
-        p1.plot(qdat[idx_max],R[idx_max],linestyle='none',marker='o',markerfacecolor='none',markeredgecolor='black',zorder=4)
-            
+    if outlier:
+        if len(idx[0]>0):
+            p0.plot(qdat[idx],Idat[idx],linestyle='none',marker='o',markerfacecolor='none',markeredgecolor='grey',zorder=4,label='potential outliers')
+            p1.plot(qdat[idx],R[idx],linestyle='none',marker='o',markerfacecolor='none',markeredgecolor='grey',zorder=4)
+
     p1.set_xlabel(r'$q$')
     p1.set_ylabel(r'$I(q)/\sigma$')
     try:
         p1.set_ylim(-maxR,maxR)
-        if Noutlier:
+        if outlier:
             p1.set_yticks([-maxR,-3,0,3,maxR])
         else:
             p1.set_yticks([-maxR,0,maxR])
@@ -404,11 +380,8 @@ if __name__=='__main__':
         plt.ylabel(r'$I(q)$')
         plt.yscale('log')
         plt.xlabel(r'$q$')
-        #if rescale == 'N':
-        if rescale_mode == 'N':
+        if rescale == 'N':
             plt.title('input data and data with q-dependent rescaling of errors')
-        elif rescale_mode == 'I':
-            plt.title('input data and data with I-dependent rescaling of errors')
         else:
             plt.title('input data and data with errors rescaled by a factor %1.2f' % beta)
         plt.legend(frameon=False)
@@ -420,7 +393,6 @@ if __name__=='__main__':
         ## plot data, fit and residuals, rescaled
         f,(p0,p1) = plt.subplots(2,1,gridspec_kw={'height_ratios': [4,1]},sharex=True)
         p0.errorbar(qdat,Idat,yerr=sigma_rs,linestyle='none',marker='.',markersize=markersize,color='blue',zorder=0,label='data with rescaled errors')
-#        p0.errorbar(qdat,Idat,yerr=sigma_a,linestyle='none',marker='.',markersize=markersize,color='green',zorder=0,label='data with rescaled errors')
         if logx:
             p0.set_xscale('log')
             p0.plot(qdat,Ifit_interp,color='black',linewidth=linewidth,zorder=1,label='fit')
@@ -432,7 +404,6 @@ if __name__=='__main__':
         p0.legend(frameon=False)
 
         p1.plot(qdat,R_rs,linestyle='none',marker='.',markersize=markersize,color='blue',zorder=0)
-#        p1.plot(qdat,R_a,linestyle='none',marker='.',markersize=markersize,color='green',zorder=0)
         if logx:
             p1.set_xscale('log')
             p1.plot(qdat,Idat*0,linewidth=linewidth,color='black',zorder=1)
@@ -462,16 +433,15 @@ if __name__=='__main__':
     output = {} # create an empty python dictionary
     
     # files
+    output["pr"] = "%s/pr.dat" % folder
     if make_pr_bin:
-        output["pr"] = "%s/pr_bin.dat" % folder
-    else:
-        output["pr"] = "%s/pr.dat" % folder
+        output["pr_bin"] = "%s/pr_bin.dat" % folder
     output["dataused"] = "%s/data.dat" % folder
-    if Noutlier: 
-        output["outlier_filtered"] = "%s/outlier_filtered.dat" % folder
-#    output["fitofdata"] = "%s/fit.dat" % folder
-    output["fitofdata"] = "%s/fit_q.dat" % folder
-#    output["fit_q"] = "%s/fit_q.dat" % folder
+    output["rescaled"] = "%s/rescale.dat" % folder
+    output["outlier_filtered"] = "%s/outlier_filtered.dat" % folder
+    output["scale_factor"] = "%s/scale_factor.dat" % folder
+    output["fitofdata"] = "%s/fit.dat" % folder
+    output["fit_q"] = "%s/fit_q.dat" % folder
     output["parameters"] = "%s/parameters.dat" % folder
     output["file_stdout"] = "%s/stdout.dat" % folder
 #    output["p_table"] = "%s/p_table.dat" % folder
@@ -480,8 +450,6 @@ if __name__=='__main__':
     output["prfig"] = "%s/pr.png" % folder
     output["iqfig"] = "%s/Iq.png" % folder
     if Prob<0.003:
-        output["rescaled"] = "%s/rescale.dat" % folder
-        output["scale_factor"] = "%s/scale_factor.dat" % folder
         output["rescalefig"] = "%s/rescale.png" % folder
         output["iqrsfig"] = "%s/Iq_rs.png" % folder
     output["zip"] = "%s/results_%s.zip" % (folder,prefix)
@@ -496,16 +464,11 @@ if __name__=='__main__':
     output["chi2"] = "%1.2f" % chi2r
     output["prob"] = "%s" % Prob_str
     output["assess"] = "%s" % assessment
-    if Prob>=0.003:
-        output["beta"] = "No correction"
-    elif rescale_mode == 'C':
-        output["beta"] = "%1.2f" % beta 
-    #elif rescale_mode == 'N':
-    else:
+    if rescale == 'N':
         output["beta"] = "see scale_factor.dat"
-    #elif rescale_mode == 'I':
-    #    output["beta"] = "see scale_factor.dat"
-
+    elif rescale == 'C':
+        output["beta"] = "%1.2f" % beta 
+    
     output["Rmax"] = "%1.1f" % Rmax
     output["Rmax_expect"] = "%1.1f +/- %1.1f" % (Rmax_expect,dRmax_expect)
     output["p_Rmax"] = "%s" % p_Rmax_str
