@@ -9,9 +9,8 @@ from genapp3 import genapp
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import gridspec
-#import subprocess
-#import time
-from helpfunctions import *
+import subprocess
+import time
 
 if __name__=='__main__':
 
@@ -20,12 +19,12 @@ if __name__=='__main__':
 
     ## read Json input
     data_file_path = json_variables['datafile'][0] # name of datafile
+    #data = data_file_path.split('/')[-1] 
     prefix = data_file_path.split('/')[-1] 
     q_min = json_variables['qmin']
     q_max = json_variables['qmax']
     dmax = json_variables['dmax'] # Maximum diameter
     transformation = json_variables['transform'] # transformation method
-    units = json_variables['units']
     
     ## read checkboxes and related input
     # the Json input for checkboxes only exists if boxes are checked
@@ -59,6 +58,7 @@ if __name__=='__main__':
         try:
             dummy = json_variables['Kratky_Mw']
             Kratky_Mw = 1
+            Kratky_units = json_variables['Kratky_units']
         except:
             Kratky_Mw = 0
         Kratky_bg = float(json_variables['Kratky_bg'])
@@ -103,14 +103,9 @@ if __name__=='__main__':
             dummy = json_variables['make_pr_bin']
             make_pr_bin = 1
             pr_binsize = float(json_variables['pr_binsize']) # binsize in pr_bin - p(r) interpolated on new r grid
+            units = json_variables['units']
         except:
             make_pr_bin = 0
-        skip_first = int(json_variables['skip_first']) # skip first points
-        try:
-            dummy = json_variables["outlier_ite"]
-            outlier_ite = 1
-        except:
-            outlier_ite = 0
     except:
         prpoints = '70' # set default value
         nrebin = '500'
@@ -121,8 +116,6 @@ if __name__=='__main__':
         smear = ''
         noextracalc = ''
         rescale_mode = 'C'
-        skip_first = 0
-        outlier_ite = 0
 
     ## get output folder
     folder = json_variables['_base_directory'] # output folder dir
@@ -162,6 +155,7 @@ if __name__=='__main__':
         try:
             dummy = json_variables['Kratky_Mw']
             Kratky_Mw = 1
+            Kratky_units = json_variables['Kratky_units']
         except:
             Kratky_Mw = 0
         Kratky_bg = float(json_variables['Kratky_bg'])
@@ -175,7 +169,33 @@ if __name__=='__main__':
     except:
         Porod = 0
 
-    ## check if qmin should be updated (due to skip_first option)
+    ## make input file with Json input for running bift
+    f = open("inputfile.dat",'w')
+    f.write('%s\n' % data)
+    f.write('%s\n' % q_min)
+    f.write('%s\n' % q_max)
+    f.write('%s\n' % nrebin)
+    f.write('%s\n' % dmax)
+    f.write('\n')
+    f.write('%s\n' % alpha)
+    f.write('%s\n' % smear)
+    f.write('\n')
+    f.write('\n')
+    f.write('%s\n' % prpoints)
+    f.write('%s\n' % noextracalc)
+    f.write('%s\n' % transformation)
+    f.write('%s\n' % fitbackground)
+    #f.write('%s\n' % rescale) # rescale method. N: non-constant, C: constant
+    f.write('%s\n' % rescale_mode) # rescale method. N: non-constant, C: constant, I: intensity-dependent
+    #if rescale == 'N':
+    if rescale_mode == 'N':
+        f.write('%s\n' % nbin)
+    else:
+        f.write('\n')
+    f.write('\n')
+    f.close()
+
+    ## check q range
     try:
         qmax = float(q_max)
     except:
@@ -184,206 +204,206 @@ if __name__=='__main__':
         qmin = float(q_min)
     except:
         qmin = 0.0
-    header,footer = get_header_footer(data)
-    out_line = '\n header = %d \n footer = %d \n' % (header,footer)
-    d.udpmessage({"_textarea":out_line})
-    q_check = np.genfromtxt(data,skip_header=header+skip_first,skip_footer=footer,usecols=[0],unpack=True)
-    if q_check[0] > qmin:
-        qmin = q_check[0]
-
-    ## check validity of q range
-    q_diff = qmax - qmin
+    q_diff = qmax - qmin 
     if q_diff < 0.0:
         out_line = '\n\n!!!ERROR!!!\nqmin should be smaller than qmax.\n\n'
         d.udpmessage({"_textarea": out_line})
-        sys.exit()   
+        sys.exit()
 
-    ##################################
-    # beginning of outlier while loop 
-    ##################################
-    CONTINUE = 1
-    count_ite,max_ite = 0,20
-    while CONTINUE:
+    ## run bayesfit
+    d.udpmessage({"_textarea":"----------------------\n"})
+    d.udpmessage({"_textarea":"running bayesapp...\n"})
+    d.udpmessage({"_textarea":"----------------------\n\n"})
 
-        ## make input file with Json input for running bift
-        f = open("inputfile.dat",'w')
-        f.write('%s\n' % data)
-        f.write('%f\n' % qmin)
-        f.write('%s\n' % q_max)
-        f.write('%s\n' % nrebin)
-        f.write('%s\n' % dmax)
-        f.write('\n')
-        f.write('%s\n' % alpha)
-        f.write('%s\n' % smear)
-        f.write('\n')
-        f.write('\n')
-        f.write('%s\n' % prpoints)
-        f.write('%s\n' % noextracalc)
-        f.write('%s\n' % transformation)
-        f.write('%s\n' % fitbackground)
-        f.write('%s\n' % rescale_mode) # rescale method. N: non-constant, C: constant, I: intensity-dependent
-        if rescale_mode == 'N':
-            f.write('%s\n' % nbin)
-        else:
-            f.write('\n')
-        f.write('\n')
-        f.close()
-
-        ## run bayesfit
-        d.udpmessage({"_textarea":"----------------------\n"})
-        d.udpmessage({"_textarea":"running bayesapp...\n"})
-        d.udpmessage({"_textarea":"----------------------\n\n"})
-        f = open('stdout.dat','w')
-        path = os.path.dirname(os.path.realpath(__file__))
-        out_line = execute([path + '/source/bift','<','inputfile.dat'],f)
-        f.close()
-        
-        ## import data and fit
-        qdat,Idat,sigma = np.genfromtxt('data.dat',skip_header=0,usecols=[0,1,2],unpack=True)
-        sigma_rs = np.genfromtxt('rescale.dat',skip_header=3,usecols=[2],unpack=True)
-        qfit,Ifit = np.genfromtxt('fit.dat',skip_header=1,usecols=[0,1],unpack=True)
-    
-        ## interpolate fit on q-values from data
-        Ifit_interp = np.interp(qdat,qfit,Ifit)
-        with open('fit_q.dat','w') as f:
-            for x,y in zip(qdat,Ifit_interp):
-                f.write('%10.10f %10.10f\n' % (x,y))
-
-        ## calculate residuals
-        R = (Idat-Ifit_interp)/sigma
-        maxR = np.ceil(np.amax(abs(R)))
-        R_rs = (Idat-Ifit_interp)/sigma_rs
-        maxR_rs = np.ceil(np.amax(abs(R_rs)))
-
-        ## outlier analysis
-        x = np.linspace(-10,10,1000)
-        pdx = np.exp(-x**2/2)
-        norm = np.sum(pdx)
-        p = np.zeros(len(R))    
-        for i in range(len(R)):
-            idx_i = np.where(x>=abs(R[i]))
-            p[i] = np.sum(pdx[idx_i])
-        p /= norm
-        p *= len(R) # correction for multiple testing
-        idx = np.where(p<0.03)
-        Noutlier = len(idx[0])
-        idx_max = np.argmax(abs(R))
-        filename_outlier = 'outlier_filtered.dat'
-        if Noutlier:
-            with open(filename_outlier,'w') as f:
-                f.write('# data, with worst outlier filtered out\n')
-                for i in range(len(R)):
-                    if i!=idx_max:
-                        f.write('%e %e %e\n' % (qdat[i],Idat[i],sigma[i]))
-        if outlier_ite:
-            data = filename_outlier
-            CONTINUE = Noutlier
-        else:
-            CONTINUE = 0
-
-        count_ite += 1
-        if count_ite >= max_ite:
-            CONTINUE = 0
-
-    ###########################
-    # end of oulier while loop 
-    ###########################
-    
-    if 1:
-
-        ## retrive output from parameter file
-        f = open('parameters.dat','r')
-        lines = f.readlines()
-        for line in lines:
-            if 'I(0) estimated             :' in line:
-                tmp = line.split(':')[1]
-                I0 = float(tmp.split('+-')[0])
-            if 'Maximum diameter           :' in line:
-                tmp = line.split(':')[1]
-                dmax = float(tmp.split('+-')[0])
-            if 'Radius of gyration         :' in line:
-                tmp = line.split(':')[1]
-                Rg = float(tmp.split('+-')[0])
-            if 'Reduced Chi-square         :' in line:
-                tmp = line.split(':')[1]
-                chi2r = float(tmp.split('+-')[0])
-            if 'Background estimated       :' in line:
-                background =float( line.split(':')[1])
-            if 'Log(alpha) (smoothness)    :' in line:
-                tmp = line.split(':')[1]
-                alpha = float(tmp.split('+-')[0])
-            if 'Number of good parameters  :' in line:
-                tmp = line.split(':')[1]
-                Ng = float(tmp.split('+-')[0])
-            if 'Number of Shannon channels :' in line:
-                Ns = float(line.split(':')[1])
-            if 'Evidence at maximum        :' in line:
-                tmp = line.split(':')[1]
-                evidence = float(tmp.split('+-')[0])
-            if 'Probability of chi-square  :' in line:
-                Prob = float(line.split(':')[1])
-                if Prob == 0.0:
-                    Prob_str = ' < 1e-20'
-                elif Prob >= 0.001:
-                    Prob_str = '%1.3f' % Prob
+    def execute(command,f):
+        start_time = time.time()
+        maximum_output_size = 1000000 # maximum output size in number of characters
+        maximum_time = 300
+        total_output_size = 0
+        popen = subprocess.Popen(command, stdout=subprocess.PIPE,bufsize=1)
+        lines_iterator = iter(popen.stdout.readline, b"")
+        while popen.poll() is None:
+            for line in lines_iterator:
+                nline = line.rstrip()
+                nline_latin = nline.decode('latin')
+                total_output_size += len(nline_latin)
+                total_time = time.time() - start_time
+                if total_output_size > maximum_output_size:
+                    popen.terminate()
+                    out_line = '\n\n!!!ERROR!!!\nProcess stopped - could not find solution. Is data input a SAXS/SANS dataset with format (q,I,sigma)?\n\n'
+                    d.udpmessage({"_textarea": out_line})
+                    sys.exit()
+                elif total_time > maximum_time:
+                    popen.terminate()
+                    out_line = '\n\n!!!ERROR!!!\nProcess stopped - reached max time of 5 min (300 sec). Is data input a SAXS/SANS dataset with format (q,I,sigma)?. If data is large (several thousand data points), consider rebinning the data. Or reduce number of points in p(r).\n\n'
+                    d.udpmessage({"_textarea": out_line})
+                    sys.exit()
                 else:
-                    Prob_str = '%1.2e' % Prob
-            if 'The exp errors are probably:' in line:
-                assessment = line.split(':')[1]
-                assessment = assessment[1:] #remove space before the word
-            if 'Correction factor          :' in line:
-                beta = float(line.split(':')[1])
-            if 'Longest run                :' in line:
-                Rmax = float(line.split(':')[1])
-            if 'Expected longest run       :' in line:
-                tmp = line.split(':')[1]
-                Rmax_expect = float(tmp.split('+-')[0])
-                dRmax_expect = float(tmp.split('+-')[1])
-            if 'Prob., longest run (cormap):' in line:
-                p_Rmax = float(line.split(':')[1])
-                if p_Rmax<0.001:
-                    p_Rmax_str = '%1.2e' % p_Rmax
-                else:
-                    p_Rmax_str = '%1.3f' % p_Rmax
-            if 'Number of runs             :' in line:
-                NR = float(line.split(':')[1])
-            if 'Expected number of runs    :' in line:
-                tmp = line.split(':')[1]
-                NR_expect = float(tmp.split('+-')[0])
-                dNR_expect = float(tmp.split('+-')[1])
-            if 'Prob.,  number of runs     :' in line:
-                p_NR = float(line.split(':')[1])
-            line = f.readline()
-        f.close()
+                    out_line = '%s\n' % nline_latin
+                    d.udpmessage({"_textarea": out_line})
+                f.write(out_line)
 
-    if 1:
-        ## import p(r)
-        r,pr,d_pr = np.genfromtxt('pr.dat',skip_header=0,usecols=[0,1,2],unpack=True)
+    f = open('stdout.dat','w')
+    path = os.path.dirname(os.path.realpath(__file__))
+#    os.system('cp %s/source/p_table.dat %s' % (path,folder)) # copy cormap pvalue table to folder (for bift to read)
+    execute([path + '/source/bift','<','inputfile.dat'],f)
+    f.close()
 
-        if make_pr_bin:
-            ## intepolate pr on grid with binsize of pr_binsize
-            if units == 'nm':
-                pr_binsize /= 10
-            r_bin = np.arange(0,r[-1],pr_binsize)
-            pr_bin = np.interp(r_bin,r,pr)
-            n = len(r)/len(r_bin)
-            pr_bin_max = np.interp(r_bin,r,pr+d_pr)
-            pr_bin_min = np.interp(r_bin,r,pr-d_pr)
-            d_pr_bin = ((pr_bin_max-pr_bin_min)/2)/np.sqrt(n)
-            with open('pr_bin.dat','w') as f:
-                for x,y,z in zip(r_bin,pr_bin,d_pr_bin):
-                    f.write('%10.10f %10.10e %10.10e\n' % (x,y,z))
+    ## retrive output from parameter file
+    f = open('parameters.dat','r')
+    lines = f.readlines()
+    for line in lines:
+        if 'I(0) estimated             :' in line:
+            tmp = line.split(':')[1]
+            I0 = float(tmp.split('+-')[0])
+            #d_I0 = tmp.split('+-')[1]
+        if 'Maximum diameter           :' in line:
+            tmp = line.split(':')[1]
+            dmax = float(tmp.split('+-')[0])
+            #d_dmax = tmp.split('+-')[1]
+        if 'Radius of gyration         :' in line:
+            tmp = line.split(':')[1]
+            Rg = float(tmp.split('+-')[0])
+            #d_Rg = tmp.split('+-')[1]
+        if 'Reduced Chi-square         :' in line:
+            tmp = line.split(':')[1]
+            chi2r = float(tmp.split('+-')[0])
+            #d_chi2r = tmp.split('+-')[1]
+        if 'Background estimated       :' in line:
+            background =float( line.split(':')[1])
+        if 'Log(alpha) (smoothness)    :' in line:
+            tmp = line.split(':')[1]
+            alpha = float(tmp.split('+-')[0])
+            #d_alpha = tmp.split('+-')[1]
+        if 'Number of good parameters  :' in line:
+            tmp = line.split(':')[1]
+            Ng = float(tmp.split('+-')[0])
+            #d_Ng = tmp.split('+-')[1]
+        if 'Number of Shannon channels :' in line:
+            Ns = float(line.split(':')[1])
+        if 'Evidence at maximum        :' in line:
+            tmp = line.split(':')[1]
+            evidence = float(tmp.split('+-')[0])
+            #d_evidence = tmp.split('+-')[1]
+        if 'Probability of chi-square  :' in line:
+            Prob = float(line.split(':')[1])
+            if Prob == 0.0:
+                Prob_str = ' < 1e-20'
+            elif Prob >= 0.001:
+                Prob_str = '%1.3f' % Prob
+            else:
+                Prob_str = '%1.2e' % Prob
+        if 'The exp errors are probably:' in line:
+            assessment = line.split(':')[1]
+            assessment = assessment[1:] #remove space before the word
+        if 'Correction factor          :' in line:
+            beta = float(line.split(':')[1])
+        if 'Longest run                :' in line:
+            Rmax = float(line.split(':')[1])
+        if 'Expected longest run       :' in line:
+            tmp = line.split(':')[1]
+            Rmax_expect = float(tmp.split('+-')[0])
+            dRmax_expect = float(tmp.split('+-')[1])
+        if 'Prob., longest run (cormap):' in line:
+            p_Rmax = float(line.split(':')[1])
+            if p_Rmax<0.001:
+                p_Rmax_str = '%1.2e' % p_Rmax
+            else:
+                p_Rmax_str = '%1.3f' % p_Rmax
+        if 'Number of runs             :' in line:
+            NR = float(line.split(':')[1])
+        if 'Expected number of runs    :' in line:
+            tmp = line.split(':')[1]
+            NR_expect = float(tmp.split('+-')[0])
+            dNR_expect = float(tmp.split('+-')[1])
+        if 'Prob.,  number of runs     :' in line:
+            p_NR = float(line.split(':')[1])
+        line = f.readline()
+    f.close()
 
     ## general plotting settings
     markersize=4
     linewidth=1
+    
+    ## import p(r)
+    r,pr,d_pr = np.genfromtxt('pr.dat',skip_header=0,usecols=[0,1,2],unpack=True)
+   
+    if make_pr_bin:
+        ## intepolate pr on grid with binsize of pr_binsize
+        if units == 'nm':
+            pr_binsize /= 10
+        r_bin = np.arange(0,r[-1],pr_binsize)
+        pr_bin = np.interp(r_bin,r,pr)
+        n = len(r)/len(r_bin) 
+        pr_bin_max = np.interp(r_bin,r,pr+d_pr)
+        pr_bin_min = np.interp(r_bin,r,pr-d_pr)
+        d_pr_bin = ((pr_bin_max-pr_bin_min)/2)/np.sqrt(n)
+        with open('pr_bin.dat','w') as f:
+            for x,y,z in zip(r_bin,pr_bin,d_pr_bin):
+                f.write('%10.10f %10.10e %10.10e\n' % (x,y,z))
+
+    ## import data and fit
+    qdat,Idat,sigma = np.genfromtxt('data.dat',skip_header=0,usecols=[0,1,2],unpack=True)
+    sigma_rs = np.genfromtxt('rescale.dat',skip_header=3,usecols=[2],unpack=True)
+    qfit,Ifit = np.genfromtxt('fit.dat',skip_header=1,usecols=[0,1],unpack=True)
+    
+    ## interpolate fit on q-values from data
+    Ifit_interp = np.interp(qdat,qfit,Ifit)
+    with open('fit_q.dat','w') as f:
+        for x,y in zip(qdat,Ifit_interp):
+            f.write('%10.10f %10.10f\n' % (x,y))
+
+    ## calculate residuals
+    R = (Idat-Ifit_interp)/sigma
+    maxR = np.ceil(np.amax(abs(R)))
+    R_rs = (Idat-Ifit_interp)/sigma_rs
+    maxR_rs = np.ceil(np.amax(abs(R_rs)))
+
+    ## calc a_opt in dI+aI correction
+    #dof = len(qdat)-Ng-1
+    #a_exp = np.linspace(-6,1,300)
+    #a = 10**a_exp
+    #a_opt = 0.0
+    #diff_min = abs(np.sum(R**2) - dof) # reduced chi2 as close to unity as possible
+    #for ai in a:
+    #    sigma_a = sigma+ai*Idat
+    #    R_a = (Idat-Ifit_interp)/sigma_a
+    #    diff = abs(np.sum(R_a**2)-dof)
+    #    if diff<diff_min:
+    #        diff_min = diff
+    #        a_opt=ai
+    #I0 = a_opt # uncomment to output
+    #sigma_a = sigma+a_opt*Idat
+    #R_a = (Idat-Ifit_interp)/sigma_a
+
+    ## outlier analysis
+    x = np.linspace(-10,10,1000)
+    pdx = np.exp(-x**2/2)
+    norm = np.sum(pdx)
+    p = np.zeros(len(R))    
+    for i in range(len(R)):
+        idx_i = np.where(x>=abs(R[i]))
+        p[i] = np.sum(pdx[idx_i])
+    p /= norm
+    p *= len(R) #correction for multiple testing
+    idx = np.where(p<0.03)
+    Noutlier = len(idx[0])
+    idx_max = np.argmax(abs(R))
+    if Noutlier:
+        with open('outlier_filtered.dat','w') as f:
+            f.write('# data, with worst outlier filtered out\n')
+            #f.write('# %d outliers were removed\n' % Noutlier)
+            for i in range(len(R)):
+                #if i in idx[0]:
+                if i!=idx_max:
+                    f.write('%e %e %e\n' % (qdat[i],Idat[i],sigma[i]))
 
     ## plot p(r)
     plt.errorbar(r,pr,yerr=d_pr,marker='.',markersize=markersize,linewidth=linewidth,color='black',label='p(r)')
     if make_pr_bin:
         plt.errorbar(r_bin,pr_bin,d_pr_bin,marker='.',markersize=markersize,linewidth=linewidth,color='green',label='p(r), fixed binsize')
         plt.legend(frameon=False)
-    plt.xlabel(r'$r$ [%s]' % units)
+    plt.xlabel(r'$r$')
     plt.ylabel(r'$p(r)$')
     plt.title('p(r)')
     plt.tight_layout()
@@ -422,7 +442,7 @@ if __name__=='__main__':
         p0.plot(qdat[idx_max],Idat[idx_max],linestyle='none',marker='o',markerfacecolor='none',markeredgecolor='black',zorder=4,label='worst outlier')
         p1.plot(qdat[idx_max],R[idx_max],linestyle='none',marker='o',markerfacecolor='none',markeredgecolor='black',zorder=4)
             
-    p1.set_xlabel(r'$q$ [%s$^{-1}$]' % units)
+    p1.set_xlabel(r'$q$')
     p1.set_ylabel(r'$\Delta I(q)/\sigma$')
     try:
         p1.set_ylim(-maxR,maxR)
@@ -442,69 +462,42 @@ if __name__=='__main__':
     plt.close()
     
     ## Guinier analysis
-    if Guinier: 
-        if qdat[Guinier_skip]*Rg<=qmaxRg:
-            Rg_Guinier = Rg
-            for i in range(7):
-                idx = np.where(qdat*Rg_Guinier<=qmaxRg)
-                q2 = qdat[idx]**2
-                lnI = np.log(Idat[idx])
-                dlnI = sigma[idx]/Idat[idx]
-        
-                n = len(idx[0])-Guinier_skip
-                while (Guinier_skip > 0) and (n<10):
-                    Guinier_skip = Guinier_skip-1
-                    n = n+1
-
-                try:
-                    a,b = np.polyfit(q2[Guinier_skip:],lnI[Guinier_skip:],1,w=1/dlnI[Guinier_skip:])
-                    fit = b+a*q2[Guinier_skip:]
-                    Rg_Guinier = (Rg_Guinier + np.sqrt(-3*a))/2
-                    Error_Guinier = False
-                except:
-                    Error_Guinier = True
-            if Error_Guinier:
-                error_message = '\nERROR in Guinier fit\n - do you have a defined Guinier region?\n - maybe try to skip some of the first points?\n'
-                d.udpmessage({"_textarea":error_message})
-                f,(p0,p1) = plt.subplots(2,1,gridspec_kw={'height_ratios': [4,1]},sharex=True)
-                p0.text(0.1,0.7,error_message,transform=p0.transAxes)
-                plt.savefig('Guinier.png',dpi=200)
-                plt.close()
-            else:
-                qmaxRg = np.sqrt(q2[-1])*Rg_Guinier
-                R = (lnI[Guinier_skip:]-fit)/dlnI[Guinier_skip:]
-                Rmax = np.ceil(np.amax(abs(R)))
-                chi2r_Guinier = np.sum(R**2)/(n-2)
-
-                f,(p0,p1) = plt.subplots(2,1,gridspec_kw={'height_ratios': [4,1]},sharex=True)
-                p0.errorbar(q2,lnI,yerr=dlnI,linestyle='none',marker='.',markersize=markersize,color='red',zorder=0)
-                p0.plot(q2[Guinier_skip:],fit,color='black',linewidth=linewidth,zorder=1,label='Guinier fit: $R_g$=%1.2f $(q_{max}R_g$=%1.2f, $\chi^2_r$=%1.1f)' % (Rg_Guinier,qmaxRg,chi2r_Guinier))
-                p1.plot(q2[Guinier_skip:],R,linestyle='none',marker='.',markersize=markersize,color='red',zorder=0)
-                p1.plot(q2,q2-q2,color='black',linewidth=linewidth,zorder=1)
-                p0.set_ylabel(r'$ln(I)$')
-                p1.set_xlabel(r'$q^2$ [%s$^{-2}$]' % units)
-                p1.set_ylabel(r'$\Delta lnI/\sigma_{lnI}$')
-                p1.set_ylim([-Rmax,Rmax])
-                p1.set_yticks([-Rmax,0,Rmax])
-                p0.set_title('Guinier plot')
-                p0.legend(frameon=False)
-                plt.savefig('Guinier.png',dpi=200)
-                plt.close()
-        else:
-            Rg_Guinier = 0
-            idx = np.where(qdat<0.05)
-            q2 = qdat[idx]**2
+    if Guinier:
+        Rg_Guinier = Rg
+        for i in range(7):
+            idx = np.where(qdat*Rg_Guinier<=qmaxRg)
+            q2=qdat[idx]**2
             lnI = np.log(Idat[idx])
             dlnI = sigma[idx]/Idat[idx]
         
-            plt.errorbar(q2,lnI,yerr=dlnI,linestyle='none',marker='.',markersize=markersize,color='red',zorder=0)
-            plt.xlabel(r'$q^2$ [%s$^{-2}$]' % units)
-            plt.ylabel(r'$ln(I)$')
-            plt.title('Guinier plot')
-            plt.legend(frameon=False)
-            plt.savefig('Guinier.png',dpi=200)
-            plt.close()
+            n = len(idx[0])-Guinier_skip
+            while (Guinier_skip > 0) and (n<10):
+                Guinier_skip = Guinier_skip-1
+                n = n+1
 
+            a,b = np.polyfit(q2[Guinier_skip:],lnI[Guinier_skip:],1,w=1/dlnI[Guinier_skip:])
+            fit = b+a*q2[Guinier_skip:]
+            Rg_Guinier = (Rg_Guinier + np.sqrt(-3*a))/2
+        qmaxRg = np.sqrt(q2[-1])*Rg_Guinier
+        R = (lnI[Guinier_skip:]-fit)/dlnI[Guinier_skip:]
+        Rmax = np.ceil(np.amax(abs(R)))
+        chi2r_Guinier = np.sum(R**2)/(n-2)
+
+        f,(p0,p1) = plt.subplots(2,1,gridspec_kw={'height_ratios': [4,1]},sharex=True)
+        p0.errorbar(q2,lnI,yerr=dlnI,linestyle='none',marker='.',markersize=markersize,color='red',zorder=0)
+        p0.plot(q2[Guinier_skip:],fit,color='black',linewidth=linewidth,zorder=1,label='Guinier fit: $R_g$=%1.2f $(q_{max}R_g$=%1.2f, $\chi^2_r$=%1.1f)' % (Rg_Guinier,qmaxRg,chi2r_Guinier))
+        p1.plot(q2[Guinier_skip:],R,linestyle='none',marker='.',markersize=markersize,color='red',zorder=0)
+        p1.plot(q2,q2-q2,color='black',linewidth=linewidth,zorder=1)
+        p0.set_ylabel(r'$ln(I)$')
+        p1.set_xlabel(r'$q^2$')
+        p1.set_ylabel(r'$\Delta lnI/\sigma_{lnI}$')
+        p1.set_ylim([-Rmax,Rmax])
+        p1.set_yticks([-Rmax,0,Rmax])
+        p0.set_title('Guinier plot')
+        p0.legend(frameon=False)
+        plt.savefig('Guinier.png',dpi=200)
+        plt.close()
+    
     ## Kratky
     if Kratky:
         if Kratky_bg:
@@ -529,10 +522,10 @@ if __name__=='__main__':
             dq = (np.amax(qdat[idx])-np.amin(qdat[idx]))/len(idx[0])
             Qt = np.sum(yy[idx])*dq
             Vt = 2*np.pi**2*y0/Qt # units of data: nm3 or A3
-            if units == 'nm':
+            if Kratky_units == 'nm':
                 Vt = Vt*1000 # convert to A3
             
-            #MwP = 0.625/1000 * Vt # Petoukhov et al 2012, 0.625 kDa/nm3 -> 0.625/1000 kDa/A3
+            MwP = 0.625/1000 * Vt # Petoukhov et al 2012, 0.625 kDa/nm3 -> 0.625/1000 kDa/A3
             
             qm = 8.0/Rg
             qm2,qm3,qm4 = qm**2,qm**3,qm**4
@@ -542,10 +535,10 @@ if __name__=='__main__':
            
             MwF = 0.83/1000 * Vm # Squire and Himmel 1979, 0.83 kDa/nm3 --> 0.83/1000 kDa/A3
             
-            label = 'Mw = %1.1f kDa (+/-10%s)' % (MwF,'%')
+            label = 'Porod plot, Mw = %1.1f kDa (+/-10%s)' % (MwF,'%')
             
         else:
-            label = ''
+            label = 'Porod plot'
 
         plt.errorbar(x,xxI,yerr=dxxI,linestyle='none',marker='.',markersize=markersize,color='red',zorder=0,label=label)
         plt.plot(x,np.zeros(len(x)),linestyle='--',color='grey',zorder=1)
@@ -556,7 +549,7 @@ if __name__=='__main__':
             plt.xlabel(r'$q R_g$')
             plt.ylabel(r'$I/I(0) (q R_G)^2$')
         else:
-            plt.xlabel(r'$q$ [%s$^{-1}$]' % units)
+            plt.xlabel(r'$q$')
             plt.ylabel(r'$I q^2$')
         plt.tight_layout()
         plt.savefig('Kratky.png',dpi=200)
@@ -571,9 +564,8 @@ if __name__=='__main__':
         dy = qdat**4 * sigma
         plt.errorbar(qdat,y,yerr=dy,linestyle='none',marker='.',markersize=markersize,color='red',zorder=0)
         plt.title('Porod plot')
-        plt.xlabel(r'$q$ [%s$^{-1}$]' % units)
+        plt.xlabel(r'$q$')
         plt.ylabel(r'$I q^4$')
-        plt.tight_layout()
         plt.savefig('Porod.png',dpi=200)
         plt.close()
 
@@ -585,7 +577,8 @@ if __name__=='__main__':
         plt.errorbar(qresc,Iresc*offset,yerr=sigmaresc*offset,linestyle='none',marker='.',markersize=markersize,color='blue',label='data with rescaled errors, offset x10',zorder=1) 
         plt.ylabel(r'$I(q)$')
         plt.yscale('log')
-        plt.xlabel(r'$q$ [%s$^{-1}$]' % units)
+        plt.xlabel(r'$q$')
+        #if rescale == 'N':
         if rescale_mode == 'N':
             plt.title('input data and data with q-dependent rescaling of errors')
         elif rescale_mode == 'I':
@@ -601,6 +594,7 @@ if __name__=='__main__':
         ## plot data, fit and residuals, rescaled
         f,(p0,p1) = plt.subplots(2,1,gridspec_kw={'height_ratios': [4,1]},sharex=True)
         p0.errorbar(qdat,Idat,yerr=sigma_rs,linestyle='none',marker='.',markersize=markersize,color='blue',zorder=0,label='data with rescaled errors')
+#        p0.errorbar(qdat,Idat,yerr=sigma_a,linestyle='none',marker='.',markersize=markersize,color='green',zorder=0,label='data with rescaled errors')
         if logx:
             p0.set_xscale('log')
             p0.plot(qdat,Ifit_interp,color='black',linewidth=linewidth,zorder=1,label='p(r) fit')
@@ -612,12 +606,13 @@ if __name__=='__main__':
         p0.legend(frameon=False)
 
         p1.plot(qdat,R_rs,linestyle='none',marker='.',markersize=markersize,color='blue',zorder=0)
+#        p1.plot(qdat,R_a,linestyle='none',marker='.',markersize=markersize,color='green',zorder=0)
         if logx:
             p1.set_xscale('log')
             p1.plot(qdat,Idat*0,linewidth=linewidth,color='black',zorder=1)
         else:
             p1.plot(qfit,Ifit*0,linewidth=linewidth,color='black',zorder=1)
-        p1.set_xlabel(r'$q$ [%s$^{-1}$]' % units)
+        p1.set_xlabel(r'$q$')
         p1.set_ylabel(r'$\Delta I(q)/\sigma_\mathrm{rescale}$')
         try:
             p1.set_ylim(-maxR_rs,maxR_rs)
@@ -634,6 +629,7 @@ if __name__=='__main__':
     os.system('cp %s/source/bift.f %s' % (path,folder))
 
     ## compress output files to zip file
+#    os.system('zip results_%s.zip pr.dat pr_bin.dat data.dat fit.dat fit_q.dat parameters.dat rescale.dat outlier_filtered.dat scale_factor.dat stdout.dat p_table.dat bift.f inputfile.dat *.png' % prefix)
     os.system('zip results_%s.zip pr.dat pr_bin.dat data.dat fit.dat fit_q.dat parameters.dat rescale.dat outlier_filtered.dat scale_factor.dat stdout.dat bift.f inputfile.dat *.png' % prefix)
 
     ## generate output
@@ -647,9 +643,12 @@ if __name__=='__main__':
     output["dataused"] = "%s/data.dat" % folder
     if Noutlier: 
         output["outlier_filtered"] = "%s/outlier_filtered.dat" % folder
+#    output["fitofdata"] = "%s/fit.dat" % folder
     output["fitofdata"] = "%s/fit_q.dat" % folder
+#    output["fit_q"] = "%s/fit_q.dat" % folder
     output["parameters"] = "%s/parameters.dat" % folder
     output["file_stdout"] = "%s/stdout.dat" % folder
+#    output["p_table"] = "%s/p_table.dat" % folder
     output["sourcecode"] = "%s/bift.f" % folder
     output["inputfile"] = "%s/inputfile.dat" % folder
     output["prfig"] = "%s/pr.png" % folder
@@ -668,10 +667,7 @@ if __name__=='__main__':
     output["dmaxout"] = "%1.2f" % dmax
     output["Rg"] = "%1.2f" % Rg
     if Guinier:
-        if Rg_Guinier == 0:
-            output["Rg_Guinier"] = "No Guinier region"
-        else:
-            output["Rg_Guinier"] = "%1.2f" % Rg_Guinier
+        output["Rg_Guinier"] = "%1.2f" % Rg_Guinier
     
     output["I0"] = "%1.2e" % I0
     output["background"] = "%2.5f" % background
