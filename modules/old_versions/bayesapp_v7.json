@@ -158,6 +158,15 @@
             ,"repeater"   : "true"
             ,"help"       : "Using Fischer/SASMOW method. Only applicaple for pure protein samples."
         }
+        #,{
+        #    "role"       : "input"
+        #    ,"id"         : "Kratky_units"
+        #    ,"label"      : "Units in data (A or nm)"
+        #    ,"type"       : "listbox"
+        #    ,"values"     : "A (default)~A~nm~nm"
+        #    ,"repeat"     : "Kratky_Mw"
+        #    ,"help"       : "<p>Units of data, A or nm (default: A)</p>used to set the binsize correctly in pr_bin.dat</p>"
+        #}
         ,{
             "role"       : "input"
             ,"id"         : "Porod"
@@ -267,7 +276,9 @@
             ,"type"       : "listbox"
             ,"repeater"   : "true"
 	    ,"repeat"     : "options"
+#	    ,"values"     : "Constant (default, scale all errors with same factor)~C~Non-constant (scaling varies along q)~N~BETA:Intensity-dependent (correct errors by adding intensity-dependent term)~I"
 	    ,"values"     : "Constant (default, scale all errors with same factor)~C~Non-constant (scaling varies along q)~N"
+#            ,"help"       : "Give an estimate of the correction of over/underestimated errors.<p>(1) Constant (default): scale all errors with same factor, &beta;=sqrt(&chi;<sup>2</sup><sub>r</sub>)</p><p>(2) Non-constant: scale each Shannon channel with factor, &beta;_i=sqrt(&chi;<sup>2</sup><sub>r,i</sub>); set minimum points per channel below.</p><p>(3) Intensity-dependent: correct errors by intensity-dependent factor, &sigma;=&sigma;+aI</p>"
             ,"help"       : "Give an estimate of the correction of over/underestimated errors.<p>(1) Constant (default): scale all errors with same factor, &beta;=sqrt(&chi;<sup>2</sup><sub>r</sub>)</p><p>(2) Non-constant: scale each Shannon channel with factor, &beta;_i=sqrt(&chi;<sup>2</sup><sub>r,i</sub>); set minimum points per channel below.</p>"
         }
         ,{
@@ -300,6 +311,15 @@
             ,"repeater"   : "true"
             ,"help"       : "<p>Output pr (pr_bin.dat) interpolated on grid with fixed binsize (default = 1 A)</p></p><p>OBS: Ensure you have enough number of points in p(r) (set above, default is 70).</p>"
         }
+	#,{
+        #    "role"       : "input"
+        #    ,"id"         : "units"
+        #    ,"label"      : "Units in data (A or nm)"
+	#    ,"type"       : "listbox"
+	#    ,"values"     : "&Aring; (default)~A~nm~nm"
+        #    ,"repeat"     : "make_pr_bin"
+        #    ,"help"       : "<p>Units of data, &Aring; or nm (default: &Aring;)</p>"
+        #}
 	,{
             "role"       : "input"
             ,"id"         : "pr_binsize"

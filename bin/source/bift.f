@@ -229,7 +229,9 @@ c*************************************************************
 c check q-range
       if((x1.lt.qmin).or.(x1.gt.qmax)) goto 22
 c exclude points with I=sigma=0 (due to beamstop etc)
-      if((y1.eq.0).and.(sd1.eq.0)) goto 22
+c      if((y1.eq.0).and.(sd1.eq.0)) goto 22
+c exclude points with sigma=0
+      if(sd1.eq.0) goto 22
 c exclude points with I=nan. nan not eq to itself
       if(y1 /= y1) goto 22
 c exclude points with sigma=nan. nan not eq to itself

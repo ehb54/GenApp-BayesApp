@@ -105,7 +105,10 @@ if __name__=='__main__':
             pr_binsize = float(json_variables['pr_binsize']) # binsize in pr_bin - p(r) interpolated on new r grid
         except:
             make_pr_bin = 0
-        skip_first = int(json_variables['skip_first']) # skip first points
+        try:
+            skip_first = int(json_variables['skip_first']) # skip first points
+        except:
+            skip_first = 0
         try:
             dummy = json_variables["outlier_ite"]
             outlier_ite = 1
