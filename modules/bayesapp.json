@@ -95,7 +95,9 @@
             ,"id"         : "Guinier"
             ,"label"      : "Guinier analysis"
             ,"type"       : "checkbox"
-            ,"repeater"   : "true"
+            ,"checked"    : "false"
+	    ,"repeater"   : "true"
+	    ,"hider"      : "true"
             ,"help"       : "Make Guinier analysis (and get Rg_Guinier)."
         }
         ,{
@@ -332,6 +334,17 @@
             ,"repeat"     : "options"
             ,"help"       : "Remove outliers iteratively. BayesApp is run, then the worst outlier (if any is removed). This is repeated until there are no outliers left."
         }
+	#,{
+        #    "role"       : "input"
+        #    ,"id"         : "runs"
+        #    ,"label"      : "Runs tests"
+        #    ,"type"       : "checkbox"
+        #    ,"checked"    : "false"
+        #    ,"repeat"     : "options"
+	    #,"repeater"   : "true"
+	    #,"hider"      : "true"
+        #    ,"help"       : "Display runs tests for fit: longest run and number of runs."
+        #}
         ,{
             "role"       : "output"
             ,"id"         : "hroutput"
@@ -414,6 +427,7 @@
             ,"id"         : "Rg_Guinier"
             ,"label"      : "R<sub>g</sub> from Guinier analysis"
             ,"type"       : "text"
+	    ,"show"       : "Guinier"
             ,"help"       : "Radius of gyration from Guinier analysis - same units as the input data: &Aring; or nm"
         }
 	,{
@@ -526,6 +540,7 @@
             ,"id"         : "guinierfig"
             ,"label"      : ""
             ,"type"       : "image"
+	    ,"show"       : "Guinier"
             ,"width"      : "50%"
         }
 	,{
