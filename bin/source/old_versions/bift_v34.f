@@ -244,8 +244,9 @@ c*************************************************************
 c check q-range
       if((x1.lt.qmin).or.(x1.gt.qmax)) goto 22
 c exclude points with I=sigma=0 (due to beamstop etc)
-c and exclude points with sigma<0
-      if(sd1.le.0) goto 22
+c      if((y1.eq.0).and.(sd1.eq.0)) goto 22
+c exclude points with sigma=0
+      if(sd1.eq.0) goto 22
 c exclude points with I=nan. nan not eq to itself
       if(y1 /= y1) goto 22
 c exclude points with sigma=nan. nan not eq to itself
@@ -1465,13 +1466,6 @@ c*********************************************
       chi2=cav*mtotxx
       pval1=gammp(DoF*.5,chi2*.5)
       pval2=gammq(DoF*.5,chi2*.5)
-c     ensure positivity  
-      if(pval1.lt.0)then
-        pval1=-pval1
-      endif
-      if(pval2.lt.0)then
-        pval2=-pval2
-      endif
       if(pval1.le.pval2)then
         pval=2.*pval1
       else
@@ -1601,14 +1595,9 @@ c     constant correction
       schi2r=scav*mtotxx/DoF
 c      beta=sqrt(chi2r)
 
-c     rescale error only if significant and more than 5 percent
+c     rescale error only if significant
       if(pval.le.0.003) then
         beta=sqrt(chi2r)
-        if (beta.le.1.05) then
-          if (beta.ge.0.95) then
-            beta=1.0
-          endif
-        endif
       else
         beta=1.0
       endif
@@ -1678,28 +1667,16 @@ c       calculate chi2r for bin (chi2rn)
 c       calculate p value for chi2rn
         pvaln1=gammp(DoFn*.5,chi2n*.5)
         pvaln2=gammq(DoFn*.5,chi2n*.5)
-c       ensure positivity
-c        if (pvaln1.lt.0) then
-c          pvaln1 = -pvaln1
-c        endif
-c        if (pvaln2.lt.0) then
-c          pvaln2 = -pvaln2
-c        endif
-c        if(pvaln1.le.pvaln2)then
-c          pvaln=2.*pvaln1
-c        else
-c          pvaln=2.*pvaln2
-c        endif
+        if(pvaln1.le.pvaln2)then
+          pvaln=2.*pvaln1
+        else
+          pvaln=2.*pvaln2
+        endif
 c       correction for multiple testing
         pvaln=pvaln*n
-c       rescale error only if significant and more than 5 percent change
+c       rescale error only if significant
         if(pvaln.le.0.003) then
           betan(i)=sqrt(chi2rn)
-          if (betan(i).le.1.05) then
-            if (betan(i).ge.0.95) then
-              betan(i)=1.0
-            endif
-          endif
         else
           betan(i)=1.0
         endif
@@ -1894,22 +1871,10 @@ c  978 format(1x,'Number of Shannon channels, qrange*(dmax/pi): ',f9.2)
       if(pval.gt.0.003) then
         write(166,980)'Correct'
       else
-        if (beta.le.1.05) then
-          if(beta.ge.0.95) then
-            write(166,980)'Correct'
-          else
-            if (chi2r.le.1) then
-              write(166,980)'Overestimated'
-            else
-              write(166,980)'Underestimated'
-            endif
-          endif
+        if (chi2r.le.1) then
+          write(166,980)'Overestimated'
         else
-          if (chi2r.le.1) then
-            write(166,980)'Overestimated'
-          else
-            write(166,980)'Underestimated'
-          endif  
+          write(166,980)'Underestimated'
         endif
       endif
   980 format(1x,'The exp errors are probably: ',a)

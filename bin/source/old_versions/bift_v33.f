@@ -18,20 +18,19 @@ c                                                            input format
 c   line 1:  the name of the data file     - compulsory -    [string]
 c   line 2:  q_min                         or a blank line   [float]
 c   line 3:  q_max                         or a blank line   [float]
-c   line 4:  subtract const background     or a blank line   [float]
-c   line 5:  nrebin                        or a blank line   [integer]
-c   line 6:  d_max                         or a blank line   [float]*
-c   line 7:  eta (non-dilute solutions)    or a blank line   [float]*
-c   line 8:  alpha                         or a blank line   [float]*
-c   line 9:  smearing constant             or a blank line   [float]
-c   line 10:  ratio (non-dilute solutions)  or a blank line   [float]
-c   line 11: method (non-dilute solutions) or a blank line   [N]one or [M]oment or [E]vidence**
-c   line 12: number of points in p(r)      or a blank line   [integer]
-c   line 13: number of extra calc          or a blank line   [integer]
-c   line 14: transformation                or a blank line   [D]ebye (default) or [N]egative or [M]axEnt or [B]essel or [S]ize
-c   line 15: fit constant background       or a blank line   [Y]es or [N]o
-c   line 16: non-const rescaling           or a blank line   [N]on-constant or [C]onstant or [I]ntensity-dependent
-c   line 17: min points per Shannon bin    or a blank line   [integer]
+c   line 4:  nrebin                        or a blank line   [integer]
+c   line 5:  d_max                         or a blank line   [float]*
+c   line 6:  eta (non-dilute solutions)    or a blank line   [float]*
+c   line 7:  alpha                         or a blank line   [float]*
+c   line 8:  smearing constant             or a blank line   [float]
+c   line 9:  ratio (non-dilute solutions)  or a blank line   [float]
+c   line 10: method (non-dilute solutions) or a blank line   [N]one or [M]oment or [E]vidence**
+c   line 11: number of points in p(r)      or a blank line   [integer]
+c   line 12: number of extra calc          or a blank line   [integer]
+c   line 13: transformation                or a blank line   [D]ebye (default) or [N]egative or [M]axEnt or [B]essel or [S]ize
+c   line 14: fit constant background       or a blank line   [Y]es or [N]o
+c   line 15: non-const rescaling           or a blank line   [N]on-constant or [C]onstant or [I]ntensity-dependent
+c   line 16: min points per Shannon bin    or a blank line   [integer]
 c
 c   * use prefix "f" to Fix value, i.e. f22.0 instead of 22.0 for d_max
 c     if no prefix is given, the input value is used as initial value in the optimization search
@@ -169,11 +168,10 @@ c********************************************************************
       plname='pl'//aname
       diamname='diam_'//bname
       redaname=aname
+      constbg=0
 
       qmin=0.0001
       qmax=1000
-      constbg=0
-
       WRITE(6,131)
   131 FORMAT(1X,'qmin (min 0.0001) or <enter>                    => ',$)
       read(555,4)dummy
@@ -196,18 +194,6 @@ c********************************************************************
       close(50)
       open(unit=50,file='dummy.dat',status='unknown')
       read(50,*)qmax
-      close(50)
-      endif
-
-      WRITE(6,133)
-  133 FORMAT(1X,'const bg or <enter>                             => ',$)
-      read(555,4)dummy
-      if(dummy.ne.'       ') then
-      open(unit=50,file='dummy.dat',status='unknown')
-      write(50,4)dummy
-      close(50)
-      open(unit=50,file='dummy.dat',status='unknown')
-      read(50,*)constbg
       close(50)
       endif
 
@@ -244,8 +230,9 @@ c*************************************************************
 c check q-range
       if((x1.lt.qmin).or.(x1.gt.qmax)) goto 22
 c exclude points with I=sigma=0 (due to beamstop etc)
-c and exclude points with sigma<0
-      if(sd1.le.0) goto 22
+c      if((y1.eq.0).and.(sd1.eq.0)) goto 22
+c exclude points with sigma=0
+      if(sd1.eq.0) goto 22
 c exclude points with I=nan. nan not eq to itself
       if(y1 /= y1) goto 22
 c exclude points with sigma=nan. nan not eq to itself
@@ -253,8 +240,7 @@ c exclude points with sigma=nan. nan not eq to itself
       ndata=ndata+1
 c subtract constant if opted for
       if(constbg.ne.0) then
-      y1 = y1-constbg
-      endif 
+        y1 = y1+constbg 
 c write data to dummy.dat (111)
       write(111,*)x1,y1,sd1
         if(sd1.le.0) then 
@@ -1465,13 +1451,6 @@ c*********************************************
       chi2=cav*mtotxx
       pval1=gammp(DoF*.5,chi2*.5)
       pval2=gammq(DoF*.5,chi2*.5)
-c     ensure positivity  
-      if(pval1.lt.0)then
-        pval1=-pval1
-      endif
-      if(pval2.lt.0)then
-        pval2=-pval2
-      endif
       if(pval1.le.pval2)then
         pval=2.*pval1
       else
@@ -1601,14 +1580,9 @@ c     constant correction
       schi2r=scav*mtotxx/DoF
 c      beta=sqrt(chi2r)
 
-c     rescale error only if significant and more than 5 percent
+c     rescale error only if significant
       if(pval.le.0.003) then
         beta=sqrt(chi2r)
-        if (beta.le.1.05) then
-          if (beta.ge.0.95) then
-            beta=1.0
-          endif
-        endif
       else
         beta=1.0
       endif
@@ -1678,28 +1652,16 @@ c       calculate chi2r for bin (chi2rn)
 c       calculate p value for chi2rn
         pvaln1=gammp(DoFn*.5,chi2n*.5)
         pvaln2=gammq(DoFn*.5,chi2n*.5)
-c       ensure positivity
-c        if (pvaln1.lt.0) then
-c          pvaln1 = -pvaln1
-c        endif
-c        if (pvaln2.lt.0) then
-c          pvaln2 = -pvaln2
-c        endif
-c        if(pvaln1.le.pvaln2)then
-c          pvaln=2.*pvaln1
-c        else
-c          pvaln=2.*pvaln2
-c        endif
+        if(pvaln1.le.pvaln2)then
+          pvaln=2.*pvaln1
+        else
+          pvaln=2.*pvaln2
+        endif
 c       correction for multiple testing
         pvaln=pvaln*n
-c       rescale error only if significant and more than 5 percent change
+c       rescale error only if significant
         if(pvaln.le.0.003) then
           betan(i)=sqrt(chi2rn)
-          if (betan(i).le.1.05) then
-            if (betan(i).ge.0.95) then
-              betan(i)=1.0
-            endif
-          endif
         else
           betan(i)=1.0
         endif
@@ -1894,22 +1856,10 @@ c  978 format(1x,'Number of Shannon channels, qrange*(dmax/pi): ',f9.2)
       if(pval.gt.0.003) then
         write(166,980)'Correct'
       else
-        if (beta.le.1.05) then
-          if(beta.ge.0.95) then
-            write(166,980)'Correct'
-          else
-            if (chi2r.le.1) then
-              write(166,980)'Overestimated'
-            else
-              write(166,980)'Underestimated'
-            endif
-          endif
+        if (chi2r.le.1) then
+          write(166,980)'Overestimated'
         else
-          if (chi2r.le.1) then
-            write(166,980)'Overestimated'
-          else
-            write(166,980)'Underestimated'
-          endif  
+          write(166,980)'Underestimated'
         endif
       endif
   980 format(1x,'The exp errors are probably: ',a)
