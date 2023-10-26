@@ -61,7 +61,7 @@ if __name__=='__main__':
             Kratky_Mw = 1
         except:
             Kratky_Mw = 0
-        #Kratky_bg = float(json_variables['Kratky_bg'])
+        Kratky_bg = float(json_variables['Kratky_bg'])
     except:
         Kratky = 0
 
@@ -69,7 +69,7 @@ if __name__=='__main__':
     try:
         dummy = json_variables['Porod']
         Porod = 1
-        #Porod_bg = float(json_variables['Porod_bg'])
+        Porod_bg = float(json_variables['Porod_bg'])
     except:
         Porod = 0
 
@@ -114,7 +114,6 @@ if __name__=='__main__':
             outlier_ite = 1
         except:
             outlier_ite = 0
-        Bg = json_variables['Bg']
     except:
         prpoints = '70' # set default value
         nrebin = '500'
@@ -127,9 +126,6 @@ if __name__=='__main__':
         rescale_mode = 'C'
         skip_first = 0
         outlier_ite = 0
-        Bg = ' '
-
-    qmax_ite = 0 # disable this function for now...
 
     ## get output folder
     folder = json_variables['_base_directory'] # output folder dir
@@ -171,17 +167,14 @@ if __name__=='__main__':
             Kratky_Mw = 1
         except:
             Kratky_Mw = 0
-        #Kratky_bg = float(json_variables['Kratky_bg'])
+        Kratky_bg = float(json_variables['Kratky_bg'])
     except:
         Kratky = 0
 
     try:
         dummy = json_variables['Porod']
         Porod = 1
-        try:
-            Porod_limit = float(json_variables['Porod_limit']) 
-        except:
-            Porod_limit = 0
+        Porod_bg = float(json_variables['Porod_bg']) 
     except:
         Porod = 0
 
@@ -189,7 +182,7 @@ if __name__=='__main__':
     try:
         qmax = float(q_max)
     except:
-        qmax = 100.0
+        qmax = 10.0
     try:
         qmin = float(q_min)
     except:
@@ -198,8 +191,6 @@ if __name__=='__main__':
     q_check = np.genfromtxt(data,skip_header=header+skip_first,skip_footer=footer,usecols=[0],unpack=True)
     if q_check[0] > qmin:
         qmin = q_check[0]
-    if q_check[-1] < qmax:
-        qmax = q_check[-1]
 
     ## check validity of q range
     q_diff = qmax - qmin
@@ -215,105 +206,80 @@ if __name__=='__main__':
     count_ite,max_ite = 0,20
     while CONTINUE:
 
-        ##################################
-        # beginning of qmax while loop 
-        ##################################
-        CONTINUE_QMAX = 1
-        count_ite_qmax,max_ite_qmax = 0,1
-        while CONTINUE_QMAX: 
+        ## make input file with Json input for running bift
+        f = open("inputfile.dat",'w')
+        f.write('%s\n' % data)
+        f.write('%f\n' % qmin)
+        f.write('%s\n' % q_max)
+        f.write('%s\n' % nrebin)
+        f.write('%s\n' % dmax)
+        f.write('\n')
+        f.write('%s\n' % alpha)
+        f.write('%s\n' % smear)
+        f.write('\n')
+        f.write('\n')
+        f.write('%s\n' % prpoints)
+        f.write('%s\n' % noextracalc)
+        f.write('%s\n' % transformation)
+        f.write('%s\n' % fitbackground)
+        f.write('%s\n' % rescale_mode) # rescale method. N: non-constant, C: constant, I: intensity-dependent
+        if rescale_mode == 'N':
+            f.write('%s\n' % nbin)
+        else:
+            f.write('\n')
+        f.write('\n')
+        f.close()
 
-            ## make input file with Json input for running bift
-            f = open("inputfile.dat",'w')
-            f.write('%s\n' % data)
-            f.write('%f\n' % qmin)
-            f.write('%f\n' % qmax)
-            f.write('%s\n' % Bg)
-            f.write('%s\n' % nrebin)
-            f.write('%s\n' % dmax)
-            f.write('\n')
-            f.write('%s\n' % alpha)
-            f.write('%s\n' % smear)
-            f.write('\n')
-            f.write('\n')
-            f.write('%s\n' % prpoints)
-            f.write('%s\n' % noextracalc)
-            f.write('%s\n' % transformation)
-            f.write('%s\n' % fitbackground)
-            f.write('%s\n' % rescale_mode) # rescale method. N: non-constant, C: constant, I: intensity-dependent
-            if rescale_mode == 'N':
-                f.write('%s\n' % nbin)
-            else:
-                f.write('\n')
-            f.write('\n')
-            f.close()
-
-            ## run bayesfit
-            d.udpmessage({"_textarea":"----------------------\n"})
-            d.udpmessage({"_textarea":"running bayesapp...\n"})
-            d.udpmessage({"_textarea":"----------------------\n\n"})
-            out_line = 'header lines in datafile:  %d\n' % header
-            d.udpmessage({"_textarea":out_line})
-            out_line = 'footer lines in datafile:  %d\n' % footer
-            d.udpmessage({"_textarea":out_line})
-            f = open('stdout.dat','w')
-            path = os.path.dirname(os.path.realpath(__file__))
-            out_line = execute([path + '/source/bift','<','inputfile.dat'],f)
-            f.close()
+        ## run bayesfit
+        d.udpmessage({"_textarea":"----------------------\n"})
+        d.udpmessage({"_textarea":"running bayesapp...\n"})
+        d.udpmessage({"_textarea":"----------------------\n\n"})
+        out_line = 'header lines in datafile:  %d\n' % header
+        d.udpmessage({"_textarea":out_line})
+        out_line = 'footer lines in datafile:  %d\n' % footer
+        d.udpmessage({"_textarea":out_line})
+        f = open('stdout.dat','w')
+        path = os.path.dirname(os.path.realpath(__file__))
+        out_line = execute([path + '/source/bift','<','inputfile.dat'],f)
+        f.close()
         
-            ## import data and fit
-            qdat,Idat,sigma = np.genfromtxt('data.dat',skip_header=0,usecols=[0,1,2],unpack=True)
-            sigma_rs = np.genfromtxt('rescale.dat',skip_header=3,usecols=[2],unpack=True)
-            qfit,Ifit = np.genfromtxt('fit.dat',skip_header=1,usecols=[0,1],unpack=True)
+        ## import data and fit
+        qdat,Idat,sigma = np.genfromtxt('data.dat',skip_header=0,usecols=[0,1,2],unpack=True)
+        sigma_rs = np.genfromtxt('rescale.dat',skip_header=3,usecols=[2],unpack=True)
+        qfit,Ifit = np.genfromtxt('fit.dat',skip_header=1,usecols=[0,1],unpack=True)
     
-            ## interpolate fit on q-values from data
-            Ifit_interp = np.interp(qdat,qfit,Ifit)
-            with open('fit_q.dat','w') as f:
-                for x,y in zip(qdat,Ifit_interp):
-                    f.write('%10.10f %10.10f\n' % (x,y))
+        ## interpolate fit on q-values from data
+        Ifit_interp = np.interp(qdat,qfit,Ifit)
+        with open('fit_q.dat','w') as f:
+            for x,y in zip(qdat,Ifit_interp):
+                f.write('%10.10f %10.10f\n' % (x,y))
 
-            ## calculate residuals
-            R = (Idat-Ifit_interp)/sigma
-            maxR = np.ceil(np.amax(abs(R)))
-            R_rs = (Idat-Ifit_interp)/sigma_rs
-            maxR_rs = np.ceil(np.amax(abs(R_rs)))
+        ## calculate residuals
+        R = (Idat-Ifit_interp)/sigma
+        maxR = np.ceil(np.amax(abs(R)))
+        R_rs = (Idat-Ifit_interp)/sigma_rs
+        maxR_rs = np.ceil(np.amax(abs(R_rs)))
 
-            ## outlier analysis
-            x = np.linspace(-10,10,1000)
-            pdx = np.exp(-x**2/2)
-            norm = np.sum(pdx)
-            p = np.zeros(len(R))    
-            for i in range(len(R)):
-                idx_i = np.where(x>=abs(R[i]))
-                p[i] = np.sum(pdx[idx_i])
-            p /= norm
-            p *= len(R) # correction for multiple testing
-            idx = np.where(p<0.03)
-            Noutlier = len(idx[0])
-            idx_max = np.argmax(abs(R))
-            filename_outlier = 'outlier_filtered.dat'
-            if Noutlier:
-                with open(filename_outlier,'w') as f:
-                    f.write('# data, with worst outlier filtered out\n')
-                    for i in range(len(R)):
-                        if i!=idx_max:
-                            f.write('%e %e %e\n' % (qdat[i],Idat[i],sigma[i]))
-        
-            ## retrive output from parameter file
-            I0,dmax,Rg,chi2r,background,alpha,Ng,Ns,evidence,Prob,Prob_str,assessment,beta,Rmax,Rmax_expect,dRmax_expect,p_Rmax_str,NR,NR_expect,dNR_expect,p_NR,qmax_useful = read_params(qmin,qmax)
-        
-            if qmax_ite:
-                qmax = qmax_useful
-            else:
-                CONTINUE_QMAX = 0
-
-            count_ite_qmax += 1
-            if count_ite_qmax > max_ite_qmax:
-                CONTINUE_QMAX = 0
-
-        ###########################
-        # end of qmax while loop 
-        ###########################
-
+        ## outlier analysis
+        x = np.linspace(-10,10,1000)
+        pdx = np.exp(-x**2/2)
+        norm = np.sum(pdx)
+        p = np.zeros(len(R))    
+        for i in range(len(R)):
+            idx_i = np.where(x>=abs(R[i]))
+            p[i] = np.sum(pdx[idx_i])
+        p /= norm
+        p *= len(R) # correction for multiple testing
+        idx = np.where(p<0.03)
+        Noutlier = len(idx[0])
+        idx_max = np.argmax(abs(R))
+        filename_outlier = 'outlier_filtered.dat'
+        if Noutlier:
+            with open(filename_outlier,'w') as f:
+                f.write('# data, with worst outlier filtered out\n')
+                for i in range(len(R)):
+                    if i!=idx_max:
+                        f.write('%e %e %e\n' % (qdat[i],Idat[i],sigma[i]))
         if outlier_ite:
             data = filename_outlier
             CONTINUE = Noutlier
@@ -323,30 +289,95 @@ if __name__=='__main__':
         count_ite += 1
         if count_ite >= max_ite:
             CONTINUE = 0
-            out_line = 'max iterations in outlier removal reached (=%d). prabably something wrong with error estimates in data' % max_ite
-            d.udpmessage({"_textarea":out_line})
-
 
     ###########################
     # end of oulier while loop 
     ###########################
     
-    ## import p(r)
-    r,pr,d_pr = np.genfromtxt('pr.dat',skip_header=0,usecols=[0,1,2],unpack=True)
+    if 1:
 
-    if make_pr_bin:
-        ## intepolate pr on grid with binsize of pr_binsize
-        if units == 'nm':
-            pr_binsize /= 10
-        r_bin = np.arange(0,r[-1],pr_binsize)
-        pr_bin = np.interp(r_bin,r,pr)
-        n = len(r)/len(r_bin)
-        pr_bin_max = np.interp(r_bin,r,pr+d_pr)
-        pr_bin_min = np.interp(r_bin,r,pr-d_pr)
-        d_pr_bin = ((pr_bin_max-pr_bin_min)/2)/np.sqrt(n)
-        with open('pr_bin.dat','w') as f:
-            for x,y,z in zip(r_bin,pr_bin,d_pr_bin):
-                f.write('%10.10f %10.10e %10.10e\n' % (x,y,z))
+        ## retrive output from parameter file
+        f = open('parameters.dat','r')
+        lines = f.readlines()
+        for line in lines:
+            if 'I(0) estimated             :' in line:
+                tmp = line.split(':')[1]
+                I0 = float(tmp.split('+-')[0])
+            if 'Maximum diameter           :' in line:
+                tmp = line.split(':')[1]
+                dmax = float(tmp.split('+-')[0])
+            if 'Radius of gyration         :' in line:
+                tmp = line.split(':')[1]
+                Rg = float(tmp.split('+-')[0])
+            if 'Reduced Chi-square         :' in line:
+                tmp = line.split(':')[1]
+                chi2r = float(tmp.split('+-')[0])
+            if 'Background estimated       :' in line:
+                background =float( line.split(':')[1])
+            if 'Log(alpha) (smoothness)    :' in line:
+                tmp = line.split(':')[1]
+                alpha = float(tmp.split('+-')[0])
+            if 'Number of good parameters  :' in line:
+                tmp = line.split(':')[1]
+                Ng = float(tmp.split('+-')[0])
+            if 'Number of Shannon channels :' in line:
+                Ns = float(line.split(':')[1])
+            if 'Evidence at maximum        :' in line:
+                tmp = line.split(':')[1]
+                evidence = float(tmp.split('+-')[0])
+            if 'Probability of chi-square  :' in line:
+                Prob = float(line.split(':')[1])
+                if Prob == 0.0:
+                    Prob_str = ' < 1e-20'
+                elif Prob >= 0.001:
+                    Prob_str = '%1.3f' % Prob
+                else:
+                    Prob_str = '%1.2e' % Prob
+            if 'The exp errors are probably:' in line:
+                assessment = line.split(':')[1]
+                assessment = assessment[1:] #remove space before the word
+            if 'Correction factor          :' in line:
+                beta = float(line.split(':')[1])
+            if 'Longest run                :' in line:
+                Rmax = float(line.split(':')[1])
+            if 'Expected longest run       :' in line:
+                tmp = line.split(':')[1]
+                Rmax_expect = float(tmp.split('+-')[0])
+                dRmax_expect = float(tmp.split('+-')[1])
+            if 'Prob., longest run (cormap):' in line:
+                p_Rmax = float(line.split(':')[1])
+                if p_Rmax<0.001:
+                    p_Rmax_str = '%1.2e' % p_Rmax
+                else:
+                    p_Rmax_str = '%1.3f' % p_Rmax
+            if 'Number of runs             :' in line:
+                NR = float(line.split(':')[1])
+            if 'Expected number of runs    :' in line:
+                tmp = line.split(':')[1]
+                NR_expect = float(tmp.split('+-')[0])
+                dNR_expect = float(tmp.split('+-')[1])
+            if 'Prob.,  number of runs     :' in line:
+                p_NR = float(line.split(':')[1])
+            line = f.readline()
+        f.close()
+
+    if 1:
+        ## import p(r)
+        r,pr,d_pr = np.genfromtxt('pr.dat',skip_header=0,usecols=[0,1,2],unpack=True)
+
+        if make_pr_bin:
+            ## intepolate pr on grid with binsize of pr_binsize
+            if units == 'nm':
+                pr_binsize /= 10
+            r_bin = np.arange(0,r[-1],pr_binsize)
+            pr_bin = np.interp(r_bin,r,pr)
+            n = len(r)/len(r_bin)
+            pr_bin_max = np.interp(r_bin,r,pr+d_pr)
+            pr_bin_min = np.interp(r_bin,r,pr-d_pr)
+            d_pr_bin = ((pr_bin_max-pr_bin_min)/2)/np.sqrt(n)
+            with open('pr_bin.dat','w') as f:
+                for x,y,z in zip(r_bin,pr_bin,d_pr_bin):
+                    f.write('%10.10f %10.10e %10.10e\n' % (x,y,z))
 
     ## general plotting settings
     markersize=4
@@ -365,11 +396,7 @@ if __name__=='__main__':
     plt.close()
 
     ## plot data, fit and residuals, not rescaled 
-    TRUNCATE_ANALYSIS = 0
-    if TRUNCATE_ANALYSIS:
-        f,(p0,p1,p2) = plt.subplots(3,1,gridspec_kw={'height_ratios': [4,1,5]},sharex=True)
-    else:
-        f,(p0,p1) = plt.subplots(2,1,gridspec_kw={'height_ratios': [4,1]},sharex=True)
+    f,(p0,p1) = plt.subplots(2,1,gridspec_kw={'height_ratios': [4,1]},sharex=True)
     p0.errorbar(qdat,Idat,yerr=sigma,linestyle='none',marker='.',markersize=markersize,color='red',zorder=0,label='data')
     if logx:
         p0.set_xscale('log')
@@ -392,16 +419,7 @@ if __name__=='__main__':
         if Noutlier:
             p1.plot(qfit,-3*np.ones(len(Ifit)),linewidth=linewidth,linestyle='--',color='grey',zorder=2,label=r'$\pm 3\sigma$')
             p1.plot(qfit,3*np.ones(len(Ifit)),linewidth=linewidth,linestyle='--',color='grey',zorder=3)
-    if TRUNCATE_ANALYSIS:
-        p2.plot(qdat,Idat/sigma,linestyle='none',marker='.',markersize=markersize,color='red',zorder=0)
-        p2.plot(qdat,Idat*0,linewidth=linewidth,color='black',zorder=1)
-        p2.plot(qdat,Idat/Idat*2,linewidth=linewidth,linestyle='--',color='grey',zorder=1)
-        p2.set_ylim(-5,10)
-        #p2.set_yscale('log')
-        p2.set_xlabel(r'$q$ [%s$^{-1}$]' % units)
-    else:
-        p1.set_xlabel(r'$q$ [%s$^{-1}$]' % units)
-        
+
     ## plot outliers
     if Noutlier:
         p0.plot(qdat[idx],Idat[idx],linestyle='none',marker='o',markerfacecolor='none',markeredgecolor='grey',zorder=4,label='potential outliers')
@@ -409,6 +427,7 @@ if __name__=='__main__':
         p0.plot(qdat[idx_max],Idat[idx_max],linestyle='none',marker='o',markerfacecolor='none',markeredgecolor='black',zorder=4,label='worst outlier')
         p1.plot(qdat[idx_max],R[idx_max],linestyle='none',marker='o',markerfacecolor='none',markeredgecolor='black',zorder=4)
             
+    p1.set_xlabel(r'$q$ [%s$^{-1}$]' % units)
     p1.set_ylabel(r'$\Delta I(q)/\sigma$')
     try:
         p1.set_ylim(-maxR,maxR)
@@ -441,6 +460,7 @@ if __name__=='__main__':
                 while (Guinier_skip > 0) and (n<10):
                     Guinier_skip = Guinier_skip-1
                     n = n+1
+
                 try:
                     a,b = np.polyfit(q2[Guinier_skip:],lnI[Guinier_skip:],1,w=1/dlnI[Guinier_skip:])
                     fit = b+a*q2[Guinier_skip:]
@@ -492,11 +512,10 @@ if __name__=='__main__':
 
     ## Kratky
     if Kratky:
-        #if Kratky_bg:
-        #    y,y0 = Idat-Kratky_bg,I0-Kratky_bg
-        #else:
-        #    y,y0 = Idat,I0
-        y,y0 = Idat,I0
+        if Kratky_bg:
+            y,y0 = Idat-Kratky_bg,I0-Kratky_bg
+        else:
+            y,y0 = Idat,I0
 
         qRg = qdat*Rg
 
@@ -550,45 +569,25 @@ if __name__=='__main__':
     
     ## Porod
     if Porod:
-        #if Porod_bg:
-        #    y = qdat**4 * (Idat-Porod_bg)
-        #else:
-        #     y = qdat**4 * Idat
-        y = qdat**4 * Idat
-        dy = qdat**4 * sigma
-        if Porod_limit:
-            qm_Porod = Porod_limit
-        #    limit = Porod_limit
+        if Porod_bg:
+            y = qdat**4 * (Idat-Porod_bg)
         else:
-            #limit = 4.0
-            qm_Porod = qmax_useful*0.95 #np.pi*Ng/dmax
-        #qm_Porod = limit/Rg
-        if np.amax(qdat) <= qm_Porod:
-        #while np.amax(qdat) < qm_Porod:
-            #limit = limit - 0.5
-            #qm_Porod = limit/Rg
-            qm_Porod = 0.9*np.amax(qdat)
+            y = qdat**4 * Idat
+        dy = qdat**4 * sigma
+        limit = 4.0
+        qm_Porod = limit/Rg
+        while np.amax(qdat) < qm_Porod:
+            limit = limit - 0.5
+            qm_Porod = limit/Rg
         idx = np.where(qdat>qm_Porod)
         a = np.polyfit(qdat[idx],y[idx],0,w=1/dy[idx])
-        R = (y-a)/dy
-        slope,bb = np.polyfit(qdat[idx],y[idx],1,w=1/dy[idx])
-        if abs(slope)<2e-5:
-            recommend = 'background subtraction fine'
-        elif slope>0:
-            recommend = 'recommend: subtract constant from data'
-        elif slope<1:
-            recommend = 'recommend: add constant to data'
-        
         f,(p0,p1) = plt.subplots(2,1,gridspec_kw={'height_ratios': [4,1]},sharex=True)
-        #p0.errorbar(qdat,y,yerr=dy,linestyle='none',marker='.',markersize=markersize,color='red',zorder=0,label='const bckgr estimate = %e' % a)
+        R = (y-a)/dy
         p0.errorbar(qdat,y,yerr=dy,linestyle='none',marker='.',markersize=markersize,color='red',zorder=0)
-        p0.plot([qm_Porod,qm_Porod],[np.amin(y),np.amax(y)],color='grey',linestyle='--')
-       
-        p0.plot(qdat[idx],qdat[idx]/qdat[idx]*a,color='black',label='const fit, data slope: %1.0e, %s' % (slope,recommend))
         p0.set_title('Porod plot')
         p0.set_ylabel(r'$I q^4$')
         p1.plot(qdat,R,linestyle='none',marker='.',markersize=markersize,color='red',zorder=0)
-        p1.plot(qdat[idx],R[idx]*a,color='black')
+        p1.plot(qdat,R*0,color='black')
         Rmax = np.ceil(np.amax(abs(R[idx])))
         p1.set_ylim(-Rmax,Rmax)
         if Rmax > 3:
@@ -596,11 +595,8 @@ if __name__=='__main__':
             p1.plot(qdat,-R/R*3,color='grey',linestyle='--')
         else:
             p1.set_yticks([-Rmax,0,Rmax])
-        p1.plot([qm_Porod,qm_Porod],[-Rmax,Rmax],color='grey',linestyle='--')
         p1.set_xlabel(r'$q$ [%s$^{-1}$]' % units)
         p1.set_ylabel(r'$\Delta Iq^4$/$\sigma_{Iq^4}$')
-
-        p0.legend(frameon=False)
         plt.tight_layout()
         plt.savefig('Porod.png',dpi=200)
         plt.close()
@@ -686,11 +682,10 @@ if __name__=='__main__':
     output["kratkyfig"] = "%s/Kratky.png" % folder
     output["porodfig"] = "%s/Porod.png" % folder
     if Prob<0.003:
-        if abs(1-beta)>0.05:
-            output["rescaled"] = "%s/rescale.dat" % folder
-            output["scale_factor"] = "%s/scale_factor.dat" % folder
-            output["rescalefig"] = "%s/rescale.png" % folder
-            output["iqrsfig"] = "%s/Iq_rs.png" % folder
+        output["rescaled"] = "%s/rescale.dat" % folder
+        output["scale_factor"] = "%s/scale_factor.dat" % folder
+        output["rescalefig"] = "%s/rescale.png" % folder
+        output["iqrsfig"] = "%s/Iq_rs.png" % folder
     output["zip"] = "%s/results_%s.zip" % (folder,prefix)
 
     # values
@@ -703,7 +698,7 @@ if __name__=='__main__':
             output["Rg_Guinier"] = "%1.2f" % Rg_Guinier
     
     output["I0"] = "%1.2e" % I0
-    output["background"] = "%1.1e" % background
+    output["background"] = "%2.5f" % background
     
     output["chi2"] = "%1.2f" % chi2r
     output["prob"] = "%s" % Prob_str
@@ -711,10 +706,7 @@ if __name__=='__main__':
     if Prob>=0.003:
         output["beta"] = "No correction"
     elif rescale_mode == 'C':
-        if abs(1-beta)>0.05:
-            output["beta"] = "%1.2f" % beta 
-        else:
-            output["beta"] = "No correction"
+        output["beta"] = "%1.2f" % beta 
     else:
         output["beta"] = "see scale_factor.dat"
 
@@ -734,6 +726,7 @@ if __name__=='__main__':
     output["evidence"] = "%1.2f" % evidence
 #    output["axratio_pro"] = "%1.2f" % ax_pro
 #    output["axratio_obl"] = "%1.2f" % ax_obl
+    qmax_useful = np.pi*Ng/dmax
     output["qmax_useful"] = "%1.2f" % qmax_useful
     #output['_textarea'] = "JSON output from executable:\n" + json.dumps( output, indent=4 ) + "\n\n";
     #output['_textarea'] += "JSON input to executable:\n" + json.dumps( json_variables, indent=4 ) + "\n";

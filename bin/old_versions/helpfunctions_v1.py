@@ -88,7 +88,7 @@ def execute(command,f):
             f.write(out_line)
     return out_line
 
-def read_params(qmin,qmax):
+def read_params():
     """
     retrive output from BIFT parameter file parameters.dat
     """
@@ -156,6 +156,4 @@ def read_params(qmin,qmax):
         line = f.readline()
     f.close()
 
-    qmax_useful = np.amin([np.pi*Ng/dmax+qmin,qmax])
-
-    return I0,dmax,Rg,chi2r,background,alpha,Ng,Ns,evidence,Prob,Prob_str,assessment,beta,Rmax,Rmax_expect,dRmax_expect,p_Rmax_str,NR,NR_expect,dNR_expect,p_NR,qmax_useful
+    return I0,dmax,Rg,chi2r,background,alpha,Ng,Ns,evidence,Prob,Prob_str,assessment,beta,Rmax,Rmax_expect,dRmax_expect,p_Rmax_str,NR,NR_expect,dNR_expect,p_NR

@@ -129,8 +129,6 @@ if __name__=='__main__':
         outlier_ite = 0
         Bg = ' '
 
-    qmax_ite = 0 # disable this function for now...
-
     ## get output folder
     folder = json_variables['_base_directory'] # output folder dir
 
@@ -208,6 +206,11 @@ if __name__=='__main__':
         d.udpmessage({"_textarea": out_line})
         sys.exit()   
 
+    ### subtract constant from data
+    #if Bg != 0:
+    #    data = 'data_subtracted.dat'
+    #    os.system('cp %s %s/%s' % (data_file_path,folder,data))
+
     ##################################
     # beginning of outlier while loop 
     ##################################
@@ -215,105 +218,81 @@ if __name__=='__main__':
     count_ite,max_ite = 0,20
     while CONTINUE:
 
-        ##################################
-        # beginning of qmax while loop 
-        ##################################
-        CONTINUE_QMAX = 1
-        count_ite_qmax,max_ite_qmax = 0,1
-        while CONTINUE_QMAX: 
+        ## make input file with Json input for running bift
+        f = open("inputfile.dat",'w')
+        f.write('%s\n' % data)
+        f.write('%f\n' % qmin)
+        f.write('%s\n' % q_max)
+        f.write('%s\n' % Bg)
+        f.write('%s\n' % nrebin)
+        f.write('%s\n' % dmax)
+        f.write('\n')
+        f.write('%s\n' % alpha)
+        f.write('%s\n' % smear)
+        f.write('\n')
+        f.write('\n')
+        f.write('%s\n' % prpoints)
+        f.write('%s\n' % noextracalc)
+        f.write('%s\n' % transformation)
+        f.write('%s\n' % fitbackground)
+        f.write('%s\n' % rescale_mode) # rescale method. N: non-constant, C: constant, I: intensity-dependent
+        if rescale_mode == 'N':
+            f.write('%s\n' % nbin)
+        else:
+            f.write('\n')
+        f.write('\n')
+        f.close()
 
-            ## make input file with Json input for running bift
-            f = open("inputfile.dat",'w')
-            f.write('%s\n' % data)
-            f.write('%f\n' % qmin)
-            f.write('%f\n' % qmax)
-            f.write('%s\n' % Bg)
-            f.write('%s\n' % nrebin)
-            f.write('%s\n' % dmax)
-            f.write('\n')
-            f.write('%s\n' % alpha)
-            f.write('%s\n' % smear)
-            f.write('\n')
-            f.write('\n')
-            f.write('%s\n' % prpoints)
-            f.write('%s\n' % noextracalc)
-            f.write('%s\n' % transformation)
-            f.write('%s\n' % fitbackground)
-            f.write('%s\n' % rescale_mode) # rescale method. N: non-constant, C: constant, I: intensity-dependent
-            if rescale_mode == 'N':
-                f.write('%s\n' % nbin)
-            else:
-                f.write('\n')
-            f.write('\n')
-            f.close()
-
-            ## run bayesfit
-            d.udpmessage({"_textarea":"----------------------\n"})
-            d.udpmessage({"_textarea":"running bayesapp...\n"})
-            d.udpmessage({"_textarea":"----------------------\n\n"})
-            out_line = 'header lines in datafile:  %d\n' % header
-            d.udpmessage({"_textarea":out_line})
-            out_line = 'footer lines in datafile:  %d\n' % footer
-            d.udpmessage({"_textarea":out_line})
-            f = open('stdout.dat','w')
-            path = os.path.dirname(os.path.realpath(__file__))
-            out_line = execute([path + '/source/bift','<','inputfile.dat'],f)
-            f.close()
+        ## run bayesfit
+        d.udpmessage({"_textarea":"----------------------\n"})
+        d.udpmessage({"_textarea":"running bayesapp...\n"})
+        d.udpmessage({"_textarea":"----------------------\n\n"})
+        out_line = 'header lines in datafile:  %d\n' % header
+        d.udpmessage({"_textarea":out_line})
+        out_line = 'footer lines in datafile:  %d\n' % footer
+        d.udpmessage({"_textarea":out_line})
+        f = open('stdout.dat','w')
+        path = os.path.dirname(os.path.realpath(__file__))
+        out_line = execute([path + '/source/bift','<','inputfile.dat'],f)
+        f.close()
         
-            ## import data and fit
-            qdat,Idat,sigma = np.genfromtxt('data.dat',skip_header=0,usecols=[0,1,2],unpack=True)
-            sigma_rs = np.genfromtxt('rescale.dat',skip_header=3,usecols=[2],unpack=True)
-            qfit,Ifit = np.genfromtxt('fit.dat',skip_header=1,usecols=[0,1],unpack=True)
+        ## import data and fit
+        qdat,Idat,sigma = np.genfromtxt('data.dat',skip_header=0,usecols=[0,1,2],unpack=True)
+        sigma_rs = np.genfromtxt('rescale.dat',skip_header=3,usecols=[2],unpack=True)
+        qfit,Ifit = np.genfromtxt('fit.dat',skip_header=1,usecols=[0,1],unpack=True)
     
-            ## interpolate fit on q-values from data
-            Ifit_interp = np.interp(qdat,qfit,Ifit)
-            with open('fit_q.dat','w') as f:
-                for x,y in zip(qdat,Ifit_interp):
-                    f.write('%10.10f %10.10f\n' % (x,y))
+        ## interpolate fit on q-values from data
+        Ifit_interp = np.interp(qdat,qfit,Ifit)
+        with open('fit_q.dat','w') as f:
+            for x,y in zip(qdat,Ifit_interp):
+                f.write('%10.10f %10.10f\n' % (x,y))
 
-            ## calculate residuals
-            R = (Idat-Ifit_interp)/sigma
-            maxR = np.ceil(np.amax(abs(R)))
-            R_rs = (Idat-Ifit_interp)/sigma_rs
-            maxR_rs = np.ceil(np.amax(abs(R_rs)))
+        ## calculate residuals
+        R = (Idat-Ifit_interp)/sigma
+        maxR = np.ceil(np.amax(abs(R)))
+        R_rs = (Idat-Ifit_interp)/sigma_rs
+        maxR_rs = np.ceil(np.amax(abs(R_rs)))
 
-            ## outlier analysis
-            x = np.linspace(-10,10,1000)
-            pdx = np.exp(-x**2/2)
-            norm = np.sum(pdx)
-            p = np.zeros(len(R))    
-            for i in range(len(R)):
-                idx_i = np.where(x>=abs(R[i]))
-                p[i] = np.sum(pdx[idx_i])
-            p /= norm
-            p *= len(R) # correction for multiple testing
-            idx = np.where(p<0.03)
-            Noutlier = len(idx[0])
-            idx_max = np.argmax(abs(R))
-            filename_outlier = 'outlier_filtered.dat'
-            if Noutlier:
-                with open(filename_outlier,'w') as f:
-                    f.write('# data, with worst outlier filtered out\n')
-                    for i in range(len(R)):
-                        if i!=idx_max:
-                            f.write('%e %e %e\n' % (qdat[i],Idat[i],sigma[i]))
-        
-            ## retrive output from parameter file
-            I0,dmax,Rg,chi2r,background,alpha,Ng,Ns,evidence,Prob,Prob_str,assessment,beta,Rmax,Rmax_expect,dRmax_expect,p_Rmax_str,NR,NR_expect,dNR_expect,p_NR,qmax_useful = read_params(qmin,qmax)
-        
-            if qmax_ite:
-                qmax = qmax_useful
-            else:
-                CONTINUE_QMAX = 0
-
-            count_ite_qmax += 1
-            if count_ite_qmax > max_ite_qmax:
-                CONTINUE_QMAX = 0
-
-        ###########################
-        # end of qmax while loop 
-        ###########################
-
+        ## outlier analysis
+        x = np.linspace(-10,10,1000)
+        pdx = np.exp(-x**2/2)
+        norm = np.sum(pdx)
+        p = np.zeros(len(R))    
+        for i in range(len(R)):
+            idx_i = np.where(x>=abs(R[i]))
+            p[i] = np.sum(pdx[idx_i])
+        p /= norm
+        p *= len(R) # correction for multiple testing
+        idx = np.where(p<0.03)
+        Noutlier = len(idx[0])
+        idx_max = np.argmax(abs(R))
+        filename_outlier = 'outlier_filtered.dat'
+        if Noutlier:
+            with open(filename_outlier,'w') as f:
+                f.write('# data, with worst outlier filtered out\n')
+                for i in range(len(R)):
+                    if i!=idx_max:
+                        f.write('%e %e %e\n' % (qdat[i],Idat[i],sigma[i]))
         if outlier_ite:
             data = filename_outlier
             CONTINUE = Noutlier
@@ -326,10 +305,81 @@ if __name__=='__main__':
             out_line = 'max iterations in outlier removal reached (=%d). prabably something wrong with error estimates in data' % max_ite
             d.udpmessage({"_textarea":out_line})
 
-
     ###########################
     # end of oulier while loop 
     ###########################
+
+
+    ## retrive output from parameter file
+    """
+    f = open('parameters.dat','r')
+    lines = f.readlines()
+    for line in lines:
+        if 'I(0) estimated             :' in line:
+            tmp = line.split(':')[1]
+            I0 = float(tmp.split('+-')[0])
+        if 'Maximum diameter           :' in line:
+            tmp = line.split(':')[1]
+            dmax = float(tmp.split('+-')[0])
+        if 'Radius of gyration         :' in line:
+            tmp = line.split(':')[1]
+            Rg = float(tmp.split('+-')[0])
+        if 'Reduced Chi-square         :' in line:
+            tmp = line.split(':')[1]
+            chi2r = float(tmp.split('+-')[0])
+        if 'Background estimated       :' in line:
+            background =float( line.split(':')[1])
+        if 'Log(alpha) (smoothness)    :' in line:
+            tmp = line.split(':')[1]
+            alpha = float(tmp.split('+-')[0])
+        if 'Number of good parameters  :' in line:
+            tmp = line.split(':')[1]
+            Ng = float(tmp.split('+-')[0])
+        if 'Number of Shannon channels :' in line:
+            Ns = float(line.split(':')[1])
+        if 'Evidence at maximum        :' in line:
+            tmp = line.split(':')[1]
+            evidence = float(tmp.split('+-')[0])
+        if 'Probability of chi-square  :' in line:
+            Prob = float(line.split(':')[1])
+            if Prob == 0.0:
+                Prob_str = ' < 1e-20'
+            elif Prob >= 0.001:
+                Prob_str = '%1.3f' % Prob
+            else:
+                Prob_str = '%1.2e' % Prob
+        if 'The exp errors are probably:' in line:
+            assessment = line.split(':')[1]
+            assessment = assessment[1:] #remove space before the word
+        if 'Correction factor          :' in line:
+            beta = float(line.split(':')[1])
+        if 'Longest run                :' in line:
+            Rmax = float(line.split(':')[1])
+        if 'Expected longest run       :' in line:
+            tmp = line.split(':')[1]
+            Rmax_expect = float(tmp.split('+-')[0])
+            dRmax_expect = float(tmp.split('+-')[1])
+        if 'Prob., longest run (cormap):' in line:
+            p_Rmax = float(line.split(':')[1])
+            if p_Rmax<0.001:
+                p_Rmax_str = '%1.2e' % p_Rmax
+            else:
+                p_Rmax_str = '%1.3f' % p_Rmax
+        if 'Number of runs             :' in line:
+            NR = float(line.split(':')[1])
+        if 'Expected number of runs    :' in line:
+            tmp = line.split(':')[1]
+            NR_expect = float(tmp.split('+-')[0])
+            dNR_expect = float(tmp.split('+-')[1])
+        if 'Prob.,  number of runs     :' in line:
+            p_NR = float(line.split(':')[1])
+        line = f.readline()
+    f.close()
+    """
+
+    I0,dmax,Rg,chi2r,background,alpha,Ng,Ns,evidence,Prob,Prob_str,assessment,beta,Rmax,Rmax_expect,dRmax_expect,p_Rmax_str,NR,NR_expect,dNR_expect,p_NR = read_params()
+
+    qmax_useful = np.amin([np.pi*Ng/dmax+qmin,qmax])
     
     ## import p(r)
     r,pr,d_pr = np.genfromtxt('pr.dat',skip_header=0,usecols=[0,1,2],unpack=True)
