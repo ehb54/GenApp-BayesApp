@@ -14,12 +14,14 @@ def get_header_footer(file):
     """
 
     header,footer = 0,0
-    f = open(file)
-    try:
-        lines = f.readlines()
-    except:
-        print('Error: cannot read lines of file. Do you have some special characters in the file? Try removing them and rerun')
-        print('file: %s' % file)
+    f = open(file,errors='ignore')
+    #f = open(file)
+    #try:
+    #    lines = f.readlines()
+    #except:
+    #    print('Error: cannot read lines of file. Do you have some special characters in the file? Try removing them and rerun')
+    #    print('file: %s' % file)
+    lines = f.readlines()
 
     CONTINUE_H,CONTINUE_F = True,True
     j = 0

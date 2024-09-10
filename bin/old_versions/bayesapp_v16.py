@@ -26,11 +26,11 @@ if __name__=='__main__':
     dmax = json_variables['dmax'] # Maximum diameter
     transformation = json_variables['transform'] # transformation method
     units = json_variables['units']
-
+    
     ## read checkboxes and related input
     # the Json input for checkboxes only exists if boxes are checked
     # therefore I use try-except to import
-    
+
     # fix dmax
     try:
         dummy = json_variables["dmaxfixed"]
@@ -61,6 +61,7 @@ if __name__=='__main__':
             Kratky_Mw = 1
         except:
             Kratky_Mw = 0
+        #Kratky_bg = float(json_variables['Kratky_bg'])
     except:
         Kratky = 0
 
@@ -68,6 +69,7 @@ if __name__=='__main__':
     try:
         dummy = json_variables['Porod']
         Porod = 1
+        #Porod_bg = float(json_variables['Porod_bg'])
     except:
         Porod = 0
 
@@ -135,9 +137,6 @@ if __name__=='__main__':
     ## messaging
     d = genapp(json_variables)
     
-    ## remove spaces from name
-    prefix = prefix.replace(" ","_")
-
     ## fortran77 bug: cannot use long file names
     if len(prefix)>48:
         d.udpmessage({"_textarea":"-----------------------------------------------------------------------------------------\n"})
@@ -147,10 +146,9 @@ if __name__=='__main__':
         d.udpmessage({"_textarea":"this will not affect the result, but the new name appears in the input file: inputfile.dat\n"})
         d.udpmessage({"_textarea":"------------------------------------------------------------------------------------------\n\n"})
         data = 'data_name_too_long_for_fortran77.dat'
-        os.system('cp "%s" "%s/%s"' % (data_file_path,folder,data))
+        os.system('cp %s %s/%s' % (data_file_path,folder,data))
     else:
         data = prefix
-        os.system('cp "%s" "%s/%s"' % (data_file_path,folder,data))
 
     try:
         dummy = json_variables['Guinier']
@@ -173,6 +171,7 @@ if __name__=='__main__':
             Kratky_Mw = 1
         except:
             Kratky_Mw = 0
+        #Kratky_bg = float(json_variables['Kratky_bg'])
     except:
         Kratky = 0
 
@@ -196,11 +195,7 @@ if __name__=='__main__':
     except:
         qmin = 0.0
     header,footer = get_header_footer(data)
-    try:
-        q_check = np.genfromtxt(data,skip_header=header+skip_first,skip_footer=footer,usecols=[0],unpack=True)
-    except:
-        q_check = np.genfromtxt(data,skip_header=header+skip_first,skip_footer=footer,usecols=[0],unpack=True,encoding='cp855')
-
+    q_check = np.genfromtxt(data,skip_header=header+skip_first,skip_footer=footer,usecols=[0],unpack=True)
     if q_check[0] > qmin:
         qmin = q_check[0]
     if q_check[-1] < qmax:
@@ -212,13 +207,6 @@ if __name__=='__main__':
         out_line = '\n\n!!!ERROR!!!\nqmin should be smaller than qmax.\n\n'
         d.udpmessage({"_textarea": out_line})
         sys.exit()   
-
-    ## automatically detect units
-    if units == 'auto':
-        if qmax > 2.0:
-            units = 'nm'
-        else:
-            units = 'A'
 
     ##################################
     # beginning of outlier while loop 
@@ -233,56 +221,6 @@ if __name__=='__main__':
         CONTINUE_QMAX = 1
         count_ite_qmax,max_ite_qmax = 0,1
         while CONTINUE_QMAX: 
-
-            ## run bayesfit
-            d.udpmessage({"_textarea":"----------------------\n"})
-            d.udpmessage({"_textarea":"running bayesapp...\n"})
-            d.udpmessage({"_textarea":"----------------------\n\n"})
-            out_line = 'header lines in datafile:  %d\n' % header
-            d.udpmessage({"_textarea":out_line})
-            out_line = 'footer lines in datafile:  %d\n' % footer
-            d.udpmessage({"_textarea":out_line})
-            
-            if not dmax:
-                ## estimate best value for dmax
-                ## make input file with Json input for running bift
-                f = open("inputfile.dat",'w')
-                f.write('%s\n' % data)
-                f.write('%f\n' % qmin)
-                f.write('%f\n' % qmax)
-                f.write('%s\n' % Bg)
-                f.write('200\n') # nrebin set to 200
-                f.write('%s\n' % dmax)
-                f.write('\n')
-                f.write('f0\n') # logalpha set to 0, so alpha is 1
-                f.write('%s\n' % smear)
-                f.write('\n')
-                f.write('\n')
-                f.write('50\n') # pr points set to 50
-                f.write('%s\n' % noextracalc)
-                f.write('%s\n' % transformation)
-                f.write('%s\n' % fitbackground)
-                f.write('%s\n' % rescale_mode) # rescale method. N: non-constant, C: constant, I: intensity-dependent
-                if rescale_mode == 'N':
-                    f.write('%s\n' % nbin)
-                else:
-                    f.write('\n')
-                f.write('\n')
-                f.close()
-
-                ## run bayesfit
-                f = open('stdout.dat','w')
-                path = os.path.dirname(os.path.realpath(__file__))
-                execute([path + '/source/bift','<','inputfile.dat'],f)
-                f.close()
-            
-                ## retrive dmax from parameter file
-                dmax_value = read_params(qmin,qmax)[1]
-                dmax = '%s' % dmax_value
-                
-                ## increase noextracalc
-                if not noextracalc:
-                    noextracalc = '100'
 
             ## make input file with Json input for running bift
             f = open("inputfile.dat",'w')
@@ -310,11 +248,19 @@ if __name__=='__main__':
             f.close()
 
             ## run bayesfit
+            d.udpmessage({"_textarea":"----------------------\n"})
+            d.udpmessage({"_textarea":"running bayesapp...\n"})
+            d.udpmessage({"_textarea":"----------------------\n\n"})
+            out_line = 'header lines in datafile:  %d\n' % header
+            d.udpmessage({"_textarea":out_line})
+            out_line = 'footer lines in datafile:  %d\n' % footer
+            d.udpmessage({"_textarea":out_line})
             f = open('stdout.dat','w')
             path = os.path.dirname(os.path.realpath(__file__))
+            #out_line = execute([path + '/source/bift','<','inputfile.dat'],f)
             execute([path + '/source/bift','<','inputfile.dat'],f)
             f.close()
-
+        
             ## import data and fit
             qdat,Idat,sigma = np.genfromtxt('data.dat',skip_header=0,usecols=[0,1,2],unpack=True)
             sigma_rs = np.genfromtxt('rescale.dat',skip_header=3,usecols=[2],unpack=True)
@@ -547,6 +493,10 @@ if __name__=='__main__':
 
     ## Kratky
     if Kratky:
+        #if Kratky_bg:
+        #    y,y0 = Idat-Kratky_bg,I0-Kratky_bg
+        #else:
+        #    y,y0 = Idat,I0
         y,y0 = Idat,I0
 
         qRg = qdat*Rg
@@ -601,47 +551,55 @@ if __name__=='__main__':
     
     ## Porod
     if Porod:
+        #if Porod_bg:
+        #    y = qdat**4 * (Idat-Porod_bg)
+        #else:
+        #     y = qdat**4 * Idat
         y = qdat**4 * Idat
         dy = qdat**4 * sigma
         if Porod_limit:
             qm_Porod = Porod_limit
+        #    limit = Porod_limit
         else:
+            #limit = 4.0
             qm_Porod = qmax_useful*0.95 #np.pi*Ng/dmax
+        #qm_Porod = limit/Rg
         if np.amax(qdat) <= qm_Porod:
+        #while np.amax(qdat) < qm_Porod:
+            #limit = limit - 0.5
+            #qm_Porod = limit/Rg
             qm_Porod = 0.9*np.amax(qdat)
         idx = np.where(qdat>qm_Porod)
         a = np.polyfit(qdat[idx],y[idx],0,w=1/dy[idx])
-        #R = (y-a)/dy
-        #slope,bb = np.polyfit(qdat[idx],y[idx],1,w=1/dy[idx])
-        #if abs(slope)<2e-5:
-        #    recommend = 'background subtraction fine'
-        #elif slope>0:
-        #    recommend = 'recommend: subtract constant from data'
-        #elif slope<1:
-        #    recommend = 'recommend: add constant to data'
+        R = (y-a)/dy
+        slope,bb = np.polyfit(qdat[idx],y[idx],1,w=1/dy[idx])
+        if abs(slope)<2e-5:
+            recommend = 'background subtraction fine'
+        elif slope>0:
+            recommend = 'recommend: subtract constant from data'
+        elif slope<1:
+            recommend = 'recommend: add constant to data'
         
-        #f,(p0,p1) = plt.subplots(2,1,gridspec_kw={'height_ratios': [4,1]},sharex=True)
-        f,p0 = plt.subplots(1,1)
+        f,(p0,p1) = plt.subplots(2,1,gridspec_kw={'height_ratios': [4,1]},sharex=True)
+        #p0.errorbar(qdat,y,yerr=dy,linestyle='none',marker='.',markersize=markersize,color='red',zorder=0,label='const bckgr estimate = %e' % a)
         p0.errorbar(qdat,y,yerr=dy,linestyle='none',marker='.',markersize=markersize,color='red',zorder=0)
         p0.plot([qm_Porod,qm_Porod],[np.amin(y),np.amax(y)],color='grey',linestyle='--')
        
-        p0.plot(qdat[idx],qdat[idx]/qdat[idx]*a,color='black',label='fit with constant')
-        #p0.plot(qdat[idx],qdat[idx]/qdat[idx]*a,color='black',label='const fit, data slope: %1.0e, %s' % (slope,recommend))
+        p0.plot(qdat[idx],qdat[idx]/qdat[idx]*a,color='black',label='const fit, data slope: %1.0e, %s' % (slope,recommend))
         p0.set_title('Porod plot')
         p0.set_ylabel(r'$I q^4$')
-        #p1.plot(qdat,R,linestyle='none',marker='.',markersize=markersize,color='red',zorder=0)
-        #p1.plot(qdat[idx],R[idx]*a,color='black')
-        #Rmax = np.ceil(np.amax(abs(R[idx])))
-        #p1.set_ylim(-Rmax,Rmax)
-        #if Rmax > 3:
-        #    p1.plot(qdat,R/R*3,color='grey',linestyle='--')
-        #    p1.plot(qdat,-R/R*3,color='grey',linestyle='--')
-        #else:
-        #    p1.set_yticks([-Rmax,0,Rmax])
-        #p1.plot([qm_Porod,qm_Porod],[-Rmax,Rmax],color='grey',linestyle='--')
-        #p1.set_xlabel(r'$q$ [%s$^{-1}$]' % units)
-        p0.set_xlabel(r'$q$ [%s$^{-1}$]' % units)
-        #p1.set_ylabel(r'$\Delta Iq^4$/$\sigma_{Iq^4}$')
+        p1.plot(qdat,R,linestyle='none',marker='.',markersize=markersize,color='red',zorder=0)
+        p1.plot(qdat[idx],R[idx]*a,color='black')
+        Rmax = np.ceil(np.amax(abs(R[idx])))
+        p1.set_ylim(-Rmax,Rmax)
+        if Rmax > 3:
+            p1.plot(qdat,R/R*3,color='grey',linestyle='--')
+            p1.plot(qdat,-R/R*3,color='grey',linestyle='--')
+        else:
+            p1.set_yticks([-Rmax,0,Rmax])
+        p1.plot([qm_Porod,qm_Porod],[-Rmax,Rmax],color='grey',linestyle='--')
+        p1.set_xlabel(r'$q$ [%s$^{-1}$]' % units)
+        p1.set_ylabel(r'$\Delta Iq^4$/$\sigma_{Iq^4}$')
 
         p0.legend(frameon=False)
         plt.tight_layout()

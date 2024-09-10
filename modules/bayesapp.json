@@ -87,8 +87,8 @@
             ,"id"         : "units"
             ,"label"      : "Units in data (&Aring; or nm)"
             ,"type"       : "listbox"
-            ,"values"     : "&Aring; (default)~A~nm~nm"
-            ,"help"       : "<p>Units of data, &Aring; or nm (default: &Aring;)</p>"
+            ,"values"     : "auto (default)~auto~&Aring;~A~nm~nm"
+            ,"help"       : "<p>Units of data, &Aring; or nm (default: automatic detection by the sophisticated algorithm: nm if qmax>2 else &Aring;)</p>"
         }
 	,{
             "role"       : "input"
@@ -269,10 +269,11 @@
             ,"id"         : "noextracalc"
             ,"label"      : "Number of extra error calculations"
             ,"type"       : "integer"
-            ,"min"        : 10
+            ,"step"       : 100
+            ,"min"        : 100
             ,"max"        : 1000
 	    ,"repeat"     : "options"
-            ,"help"       : "<p>Set to e.g. 500, if p(r) goes abruptly to zero</p><p>Input number of extra error calculations (max 1000).</p><p>Entering a large number will improve the error estimate,</p><p>but require more cpu time.</p><p>In some cases it may be a little tricky to obtain a decent</p><p>error estimate. Try testing a couple of values to see the effect. </p>"
+            ,"help"       : "<p>Set to e.g. 500, if p(r) goes abruptly to zero</p><p>Input number of extra error calculations (min 100, max 1000).</p><p>Entering a large number will improve the error estimate,</p><p>but require more cpu time.</p><p>In some cases it may be a little tricky to obtain a decent</p><p>error estimate. Try testing a couple of values to see the effect. </p>"
         }
 	,{
             "role"       : "input"
