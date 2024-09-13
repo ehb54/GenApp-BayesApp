@@ -1601,11 +1601,11 @@ c     constant correction
       schi2r=scav*mtotxx/DoF
 c      beta=sqrt(chi2r)
 
-c     rescale error only if significant and more than 5 percent
+c     rescale error only if significant and more than 10 percent
       if(pval.le.0.003) then
         beta=sqrt(chi2r)
-        if (beta.le.1.05) then
-          if (beta.ge.0.95) then
+        if (beta.le.1.1) then
+          if (beta.ge.0.9) then
             beta=1.0
           endif
         endif
@@ -1692,11 +1692,11 @@ c          pvaln=2.*pvaln2
 c        endif
 c       correction for multiple testing
         pvaln=pvaln*n
-c       rescale error only if significant and more than 5 percent change
+c       rescale error only if significant and more than 10 percent change
         if(pvaln.le.0.003) then
           betan(i)=sqrt(chi2rn)
-          if (betan(i).le.1.05) then
-            if (betan(i).ge.0.95) then
+          if (betan(i).le.1.1) then
+            if (betan(i).ge.0.9) then
               betan(i)=1.0
             endif
           endif
@@ -1894,8 +1894,8 @@ c  978 format(1x,'Number of Shannon channels, qrange*(dmax/pi): ',f9.2)
       if(pval.gt.0.003) then
         write(166,980)'Correct'
       else
-        if (beta.le.1.05) then
-          if(beta.ge.0.95) then
+        if (beta.le.1.1) then
+          if(beta.ge.0.9) then
             write(166,980)'Correct'
           else
             if (chi2r.le.1) then
@@ -1915,8 +1915,8 @@ c  978 format(1x,'Number of Shannon channels, qrange*(dmax/pi): ',f9.2)
   980 format(1x,'The exp errors are probably: ',a)
       write(166,981)sqrt(chi2r)
   981 format(1x,'Correction factor          : ',f9.2)
-      write(166,926)ai_opt
-  926 format(1x,'Optimal ai (dI+=ai*I)      : ',e9.2)
+c      write(166,926)ai_opt
+c  926 format(1x,'Optimal ai (dI+=ai*I)      : ',e9.2)
       write(166,982)runmaxav
   982 format(1x,'Longest run                : ',f9.2)
 c      write(166,984)sumpart
@@ -1975,15 +1975,15 @@ c      close(137)
 c      WRITE(6,902)mtotxx
 c  902 FORMAT(1X,'Number of data points :  ',f9.0)    
       WRITE(6,912)hxNAME
-  912 FORMAT(1X,'Data used in          :  ',A)
+  912 FORMAT(1X,'Data rebinned in      :  ',A)
       if(etaest.ne.0) WRITE(6,910)sNAME
   910 FORMAT(1X,'Structure factor in   :  ',A)
       WRITE(6,916)'rescale.dat'
   916 FORMAT(1X,'Error-rescaled data in:  ',A)
       WRITE(6,917)'scale_factor.dat'
   917 FORMAT(1X,'Scale factor(s) in    :  ',A)
-      write(6,927)ai_opt
-  927 format(1x,'Optimal ai (dI+=ai*I) : ',e9.2)
+c      write(6,927)ai_opt
+c  927 format(1x,'Optimal ai (dI+=ai*I) : ',e9.2)
       WRITE(6,919)'parameters.dat'
   919 FORMAT(1X,'Parameters in         :  ',A)
       WRITE(6,920)runmaxav

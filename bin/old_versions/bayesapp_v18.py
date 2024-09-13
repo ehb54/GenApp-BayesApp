@@ -23,12 +23,21 @@ if __name__=='__main__':
     prefix = data_file_path.split('/')[-1] 
     q_min = json_variables['qmin']
     q_max = json_variables['qmax']
+    dmax = json_variables['dmax'] # Maximum diameter
+    transformation = json_variables['transform'] # transformation method
     units = json_variables['units']
 
     ## read checkboxes and related input
     # the Json input for checkboxes only exists if boxes are checked
     # therefore I use try-except to import
     
+    # fix dmax
+    try:
+        dummy = json_variables["dmaxfixed"]
+        dmax = 'f%s' % dmax
+    except:
+        pass
+
     # Guinier analysis
     try:
         dummy = json_variables['Guinier']
@@ -64,20 +73,13 @@ if __name__=='__main__':
 
     ## read extra options
     try:
-        dummy = json_variables['options']
-        dmax = json_variables['dmax'] # Maximum diameter
-        transformation = json_variables['transform'] # transformation method
+        dummy = json_variables["options"]
         nrebin = json_variables['nrebin'] # max number of points to rebin data to
         alpha = json_variables['alpha'] # alpha
         smear = json_variables['smearing'] # smearing constant
         prpoints = json_variables['prpoints'] # number of points in p(r)
         noextracalc = json_variables['noextracalc'] # number of extra calculations
         rescale_mode = json_variables['rescale_mode'] # model name
-        try:
-            dummy = json_variables['dmaxfixed']
-            dmax = 'f%s' % dmax
-        except:
-            pass
         if rescale_mode == 'N':
             nbin = json_variables['binsize']
         try:
@@ -112,8 +114,6 @@ if __name__=='__main__':
             outlier_ite = 0
         Bg = json_variables['Bg']
     except:
-        transformation = 'A'
-        dmax = ''
         prpoints = '70' # set default value
         nrebin = '500'
         alpha = ''
@@ -136,8 +136,8 @@ if __name__=='__main__':
     d = genapp(json_variables)
     
     ## remove spaces from name
-    prefix = prefix.replace(" ","_").replace("(","").replace(")","")
-   
+    prefix = prefix.replace(" ","_")
+
     ## fortran77 bug: cannot use long file names
     if len(prefix)>48:
         d.udpmessage({"_textarea":"-----------------------------------------------------------------------------------------\n"})
@@ -155,10 +155,8 @@ if __name__=='__main__':
     try:
         dummy = json_variables['Guinier']
         Guinier = 1
-        #qmaxRg = float(json_variables['Guinier_qmaxRg']) # qmax*Rg in Guinier analysis
-        qmaxRg_in = json_variables['Guinier_qmaxRg'] # qmax*Rg in Guinier analysis
-        #Guinier_skip = int(json_variables['Guinier_skip']) # skip first points in Guinier analysis
-        Guinier_skip_in = json_variables['Guinier_skip'] # skip first points in Guinier analysis
+        qmaxRg = float(json_variables['Guinier_qmaxRg']) # qmax*Rg in Guinier analysis
+        Guinier_skip = int(json_variables['Guinier_skip']) # skip first points in Guinier analysis
     except:
         Guinier = 0
 
@@ -219,12 +217,8 @@ if __name__=='__main__':
     if units == 'auto':
         if qmax > 2.0:
             units = 'nm'
-            if qmax > 8:
-                qmax = 8
         else:
             units = 'A'
-            if qmax > 0.8:
-                qmax = 0.8
 
     ##################################
     # beginning of outlier while loop 
@@ -249,8 +243,8 @@ if __name__=='__main__':
             out_line = 'footer lines in datafile:  %d\n' % footer
             d.udpmessage({"_textarea":out_line})
             
-            if (not dmax or transformation == 'A'):
-                ## estimate best value for dmax and best transformation
+            if not dmax:
+                ## estimate best value for dmax
                 ## make input file with Json input for running bift
                 f = open("inputfile.dat",'w')
                 f.write('%s\n' % data)
@@ -260,19 +254,13 @@ if __name__=='__main__':
                 f.write('200\n') # nrebin set to 200
                 f.write('%s\n' % dmax)
                 f.write('\n')
-                if alpha:
-                    f.write('%s\n' % alpha)
-                else:
-                    f.write('f5\n') # fix alpha
+                f.write('f0\n') # logalpha set to 0, so alpha is 1
                 f.write('%s\n' % smear)
                 f.write('\n')
                 f.write('\n')
                 f.write('50\n') # pr points set to 50
-                f.write('\n') # 0 extra error calculations
-                if transformation == 'A':
-                    f.write('D\n')
-                else:
-                    f.write('%s\n' % transformation)
+                f.write('%s\n' % noextracalc)
+                f.write('%s\n' % transformation)
                 f.write('%s\n' % fitbackground)
                 f.write('%s\n' % rescale_mode) # rescale method. N: non-constant, C: constant, I: intensity-dependent
                 if rescale_mode == 'N':
@@ -287,91 +275,62 @@ if __name__=='__main__':
                 path = os.path.dirname(os.path.realpath(__file__))
                 execute([path + '/source/bift','<','inputfile.dat'],f)
                 f.close()
+            
+                ## retrive dmax from parameter file
+                dmax_value = read_params(qmin,qmax)[1]
+                dmax = '%s' % dmax_value
                 
-                if not dmax:
-                    ## retrive dmax from parameter file
-                    dmax_value = read_params(qmin,qmax)[1]
-                    dmax = '%s' % dmax_value
-
-                ## check for negative values in pr
-                #chi2r = read_params(qmin,qmax)[3]
-                #if chi2r > 5:
-                if transformation == 'A':
-                    r,pr,d_pr = np.genfromtxt('pr.dat',skip_header=0,usecols=[0,1,2],unpack=True)
-                    threshold_pr = np.max(pr)*1E-4
-                    contain_negative_entries = np.any(pr<-threshold_pr)
-                    if contain_negative_entries:
-                        transformation = 'N' # N for negative (allow negative values)
-                    else:
-                        transformation = 'D'
-
                 ## increase noextracalc
                 if not noextracalc:
                     noextracalc = '100'
 
-            CONTINUE_Trans = True
-            SECOND_TRY = False
-            while CONTINUE_Trans:
-                try:
-                    ## make input file with Json input for running bift
-                    f = open("inputfile.dat",'w')
-                    f.write('%s\n' % data)
-                    f.write('%f\n' % qmin)
-                    f.write('%f\n' % qmax)
-                    f.write('%s\n' % Bg)
-                    f.write('%s\n' % nrebin)
-                    f.write('%s\n' % dmax)
-                    f.write('\n')
-                    f.write('%s\n' % alpha)
-                    f.write('%s\n' % smear)
-                    f.write('\n')
-                    f.write('\n')
-                    f.write('%s\n' % prpoints)
-                    f.write('%s\n' % noextracalc)
-                    f.write('%s\n' % transformation)
-                    f.write('%s\n' % fitbackground)
-                    f.write('%s\n' % rescale_mode) # rescale method. N: non-constant, C: constant, I: intensity-dependent
-                    if rescale_mode == 'N':
-                        f.write('%s\n' % nbin)
-                    else:
-                        f.write('\n')
-                    f.write('\n')
-                    f.close()
+            ## make input file with Json input for running bift
+            f = open("inputfile.dat",'w')
+            f.write('%s\n' % data)
+            f.write('%f\n' % qmin)
+            f.write('%f\n' % qmax)
+            f.write('%s\n' % Bg)
+            f.write('%s\n' % nrebin)
+            f.write('%s\n' % dmax)
+            f.write('\n')
+            f.write('%s\n' % alpha)
+            f.write('%s\n' % smear)
+            f.write('\n')
+            f.write('\n')
+            f.write('%s\n' % prpoints)
+            f.write('%s\n' % noextracalc)
+            f.write('%s\n' % transformation)
+            f.write('%s\n' % fitbackground)
+            f.write('%s\n' % rescale_mode) # rescale method. N: non-constant, C: constant, I: intensity-dependent
+            if rescale_mode == 'N':
+                f.write('%s\n' % nbin)
+            else:
+                f.write('\n')
+            f.write('\n')
+            f.close()
 
-                    ## run bayesfit
-                    f = open('stdout.dat','w')
-                    path = os.path.dirname(os.path.realpath(__file__))
-                    execute([path + '/source/bift','<','inputfile.dat'],f)
-                    f.close()
-            
-                    ## import data and fit
-                    qdat,Idat,sigma = np.genfromtxt('data.dat',skip_header=0,usecols=[0,1,2],unpack=True)
-                    sigma_rs = np.genfromtxt('rescale.dat',skip_header=3,usecols=[2],unpack=True)
-                    qfit,Ifit = np.genfromtxt('fit.dat',skip_header=1,usecols=[0,1],unpack=True)
-            
-                    ## interpolate fit on q-values from data
-                    Ifit_interp = np.interp(qdat,qfit,Ifit)
-                    with open('fit_q.dat','w') as f:
-                        for x,y in zip(qdat,Ifit_interp):
-                            f.write('%10.10f %10.10f\n' % (x,y))
+            ## run bayesfit
+            f = open('stdout.dat','w')
+            path = os.path.dirname(os.path.realpath(__file__))
+            execute([path + '/source/bift','<','inputfile.dat'],f)
+            f.close()
 
-                    ## calculate residuals
-                    R = (Idat-Ifit_interp)/sigma
-                    maxR = np.ceil(np.amax(abs(R)))
-                    R_rs = (Idat-Ifit_interp)/sigma_rs
-                    maxR_rs = np.ceil(np.amax(abs(R_rs)))
-            
-                    CONTINUE_Trans = False
+            ## import data and fit
+            qdat,Idat,sigma = np.genfromtxt('data.dat',skip_header=0,usecols=[0,1,2],unpack=True)
+            sigma_rs = np.genfromtxt('rescale.dat',skip_header=3,usecols=[2],unpack=True)
+            qfit,Ifit = np.genfromtxt('fit.dat',skip_header=1,usecols=[0,1],unpack=True)
+    
+            ## interpolate fit on q-values from data
+            Ifit_interp = np.interp(qdat,qfit,Ifit)
+            with open('fit_q.dat','w') as f:
+                for x,y in zip(qdat,Ifit_interp):
+                    f.write('%10.10f %10.10f\n' % (x,y))
 
-                except:
-                    if SECOND_TRY:
-                        CONTINUE_Trans = False
-                    if transformation == 'N':
-                        transformation = 'D'
-                        SECOND_TRY = True
-                    elif transformation == 'D':
-                        transformation = 'N'
-                        SECOND_TRY = True
+            ## calculate residuals
+            R = (Idat-Ifit_interp)/sigma
+            maxR = np.ceil(np.amax(abs(R)))
+            R_rs = (Idat-Ifit_interp)/sigma_rs
+            maxR_rs = np.ceil(np.amax(abs(R_rs)))
 
             ## outlier analysis
             x = np.linspace(-10,10,1000)
@@ -383,7 +342,7 @@ if __name__=='__main__':
                 p[i] = np.sum(pdx[idx_i])
             p /= norm
             p *= len(R) # correction for multiple testing
-            idx = np.where(p<0.01)
+            idx = np.where(p<0.03)
             Noutlier = len(idx[0])
             idx_max = np.argmax(abs(R))
             filename_outlier = 'outlier_filtered.dat'
@@ -395,7 +354,7 @@ if __name__=='__main__':
                             f.write('%e %e %e\n' % (qdat[i],Idat[i],sigma[i]))
         
             ## retrive output from parameter file
-            I0,dmax_out,Rg,chi2r,background,alpha,Ng,Ns,evidence,Prob,Prob_str,assessment,beta,Run_max,Run_max_expect,dRun_max_expect,p_Run_max_str,NR,NR_expect,dNR_expect,p_NR,qmax_useful = read_params(qmin,qmax)
+            I0,dmax,Rg,chi2r,background,alpha,Ng,Ns,evidence,Prob,Prob_str,assessment,beta,Rmax,Rmax_expect,dRmax_expect,p_Rmax_str,NR,NR_expect,dNR_expect,p_NR,qmax_useful = read_params(qmin,qmax)
         
             if qmax_ite:
                 qmax = qmax_useful
@@ -449,7 +408,6 @@ if __name__=='__main__':
     linewidth=1
 
     ## plot p(r)
-    plt.plot(r,np.zeros(len(r)),linestyle='--',color='grey',zorder=0)
     plt.errorbar(r,pr,yerr=d_pr,marker='.',markersize=markersize,linewidth=linewidth,color='black',label='p(r)')
     if make_pr_bin:
         plt.errorbar(r_bin,pr_bin,d_pr_bin,marker='.',markersize=markersize,linewidth=linewidth,color='green',label='p(r), fixed binsize')
@@ -500,15 +458,12 @@ if __name__=='__main__':
         p1.set_xlabel(r'$q$ [%s$^{-1}$]' % units)
         
     ## plot outliers
-    if Noutlier>1:
+    if Noutlier:
         p0.plot(qdat[idx],Idat[idx],linestyle='none',marker='o',markerfacecolor='none',markeredgecolor='grey',zorder=4,label='potential outliers')
         p1.plot(qdat[idx],R[idx],linestyle='none',marker='o',markerfacecolor='none',markeredgecolor='grey',zorder=4)
         p0.plot(qdat[idx_max],Idat[idx_max],linestyle='none',marker='o',markerfacecolor='none',markeredgecolor='black',zorder=4,label='worst outlier')
         p1.plot(qdat[idx_max],R[idx_max],linestyle='none',marker='o',markerfacecolor='none',markeredgecolor='black',zorder=4)
-    elif Noutlier == 1:
-        p0.plot(qdat[idx_max],Idat[idx_max],linestyle='none',marker='o',markerfacecolor='none',markeredgecolor='black',zorder=4,label='potential outlier')
-        p1.plot(qdat[idx_max],R[idx_max],linestyle='none',marker='o',markerfacecolor='none',markeredgecolor='black',zorder=4)
-
+            
     p1.set_ylabel(r'$\Delta I(q)/\sigma$')
     try:
         p1.set_ylim(-maxR,maxR)
@@ -528,48 +483,9 @@ if __name__=='__main__':
     plt.close()
     
     ## Guinier analysis
-    if Guinier:
-        try:
-            qmaxRg = float(qmaxRg_in)
-        except:
-            qmaxRg = 1.25
-            """
-            #determine qmaxRg automatically
-            idx_maxpr = np.argmax(pr)
-            ratioRg = Rg/r[idx_maxpr]
-            if ratioRg < 1.0:
-                qmaxRg = 1.32
-            elif ratioRg > 1.5:
-                qmaxRg = 1.02
-            else:
-                qmaxRg = ((ratioRg-1.0)*1.32 + (1.5-ratioRg)*1.02)/(1.5-0.9)
-            """
-        Rg_Guinier = Rg
-        try:
-            Guinier_skip = int(Guinier_skip_in) 
-        except:
-            idx = np.where(qdat*Rg_Guinier<=qmaxRg)
-            q2 = qdat[idx]**2
-            lnI = np.log(Idat[idx])
-            dlnI = sigma[idx]/Idat[idx]
-            
-            Guinier_skip = 0
-            CONTINUE = True
-            while CONTINUE:
-                try:
-                    a,b = np.polyfit(q2[Guinier_skip:],lnI[Guinier_skip:],1,w=1/dlnI[Guinier_skip:])
-                    fit = b+a*q2[Guinier_skip:]
-                    R = (lnI[Guinier_skip:]-fit)
-                    Rmean = np.mean(abs(R))
-                    if abs(R[0]) > Rmean*2:
-                        Guinier_skip += 1
-                    else:
-                        CONTINUE = False
-                except:
-                    CONTINUE = False
-        
+    if Guinier: 
         if qdat[Guinier_skip]*Rg<=qmaxRg:
-
+            Rg_Guinier = Rg
             for i in range(7):
                 idx = np.where(qdat*Rg_Guinier<=qmaxRg)
                 q2 = qdat[idx]**2
@@ -588,7 +504,7 @@ if __name__=='__main__':
                 except:
                     Error_Guinier = True
             if Error_Guinier:
-                error_message = '\nERROR in Guinier fit\n - do you have a defined Guinier region?\n - maybe try to skip some of the first points?\n - interparticle interactions may lead to a negative slope at low q\n - contrast match may lead to a negative slope at low q'
+                error_message = '\nERROR in Guinier fit\n - do you have a defined Guinier region?\n - maybe try to skip some of the first points?\n'
                 d.udpmessage({"_textarea":error_message})
                 f,(p0,p1) = plt.subplots(2,1,gridspec_kw={'height_ratios': [4,1]},sharex=True)
                 p0.text(0.1,0.7,error_message,transform=p0.transAxes)
@@ -602,8 +518,7 @@ if __name__=='__main__':
 
                 f,(p0,p1) = plt.subplots(2,1,gridspec_kw={'height_ratios': [4,1]},sharex=True)
                 p0.errorbar(q2,lnI,yerr=dlnI,linestyle='none',marker='.',markersize=markersize,color='red',zorder=0)
-                #p0.plot(q2[Guinier_skip:],fit,color='black',linewidth=linewidth,zorder=1,label='Guinier fit: $R_g$=%1.2f $(q_{max}R_g$=%1.2f, $\chi^2_r$=%1.1f, points skipped = %d)' % (Rg_Guinier,qmaxRg,chi2r_Guinier,Guinier_skip))
-                p0.plot(q2[Guinier_skip:],fit,color='black',linewidth=linewidth,zorder=1,label='$R_g$=%1.2f, $q_{max}R_g$=%1.2f, $\chi^2_r$=%1.1f, skipped_points=%d' % (Rg_Guinier,qmaxRg,chi2r_Guinier,Guinier_skip))
+                p0.plot(q2[Guinier_skip:],fit,color='black',linewidth=linewidth,zorder=1,label='Guinier fit: $R_g$=%1.2f $(q_{max}R_g$=%1.2f, $\chi^2_r$=%1.1f)' % (Rg_Guinier,qmaxRg,chi2r_Guinier))
                 p1.plot(q2[Guinier_skip:],R,linestyle='none',marker='.',markersize=markersize,color='red',zorder=0)
                 p1.plot(q2,q2-q2,color='black',linewidth=linewidth,zorder=1)
                 p0.set_ylabel(r'$ln(I)$')
@@ -616,7 +531,6 @@ if __name__=='__main__':
                 plt.savefig('Guinier.png',dpi=200)
                 plt.close()
         else:
-            """
             Rg_Guinier = 0
             idx = np.where(qdat<0.05)
             q2 = qdat[idx]**2
@@ -630,18 +544,10 @@ if __name__=='__main__':
             plt.legend(frameon=False)
             plt.savefig('Guinier.png',dpi=200)
             plt.close()
-            """
-            Rg_Guinier = 0
-            error_message = '\nERROR in Guinier fit\n - do you have a defined Guinier region?\n - maybe you skipped too many points?\n - maybe your sample is large (>hundreds of nm)?'
-            d.udpmessage({"_textarea":error_message})
-            f,(p0,p1) = plt.subplots(2,1,gridspec_kw={'height_ratios': [4,1]},sharex=True)
-            p0.text(0.1,0.7,error_message,transform=p0.transAxes)
-            plt.savefig('Guinier.png',dpi=200)
-            plt.close()
 
     ## Kratky
     if Kratky:
-        y,y0 = Idat-background,I0-background
+        y,y0 = Idat,I0
 
         qRg = qdat*Rg
 
@@ -655,33 +561,25 @@ if __name__=='__main__':
             dxxI = x*x*sigma
 
         if Kratky_Mw:
-            if units == 'nm':
-                qdat_aa = qdat*0.1
-                Rg_aa = Rg*10
-            else:
-                qdat_aa = qdat
-                Rg_aa = Rg
-            qm = np.amin([8.0/Rg_aa,np.amax(qdat_aa)])
-            relative_uncertainty = np.max([Rg_aa/300,0.1]) # Ficher et al 2010 J. Appl. Cryst. (2010). 43, 101-109
-
             idx = np.where(qRg <= 8.0)
-            yy = qdat_aa**2*y
-            dq_aa = (np.amax(qdat_aa[idx])-np.amin(qdat_aa[idx]))/len(idx[0])
-            Qt = np.sum(yy[idx])*dq_aa
-            Vt = 2*np.pi**2*y0/Qt
+            yy = qdat**2*y
+            dq = (np.amax(qdat[idx])-np.amin(qdat[idx]))/len(idx[0])
+            Qt = np.sum(yy[idx])*dq
+            Vt = 2*np.pi**2*y0/Qt # units of data: nm3 or A3
+            if units == 'nm':
+                Vt = Vt*1000 # convert to A3
             
             #MwP = 0.625/1000 * Vt # Petoukhov et al 2012, 0.625 kDa/nm3 -> 0.625/1000 kDa/A3
-           
-            # Piiadov et al 2018 Protein Science  https://doi.org/10.1002/pro.3528
+            
+            qm = np.amin([8.0/Rg,np.amax(qdat)])
             qm2,qm3,qm4 = qm**2,qm**3,qm**4
             A = -2.114e6*qm**4 + 2.920e6*qm3 - 1.472e6*qm2 + 3.349e5*qm - 3.577e4
             B =                  12.09*qm3   - 9.39*qm2    + 3.03*qm    + 0.29
             Vm = A+B*Vt # A
            
             MwF = 0.83/1000 * Vm # Squire and Himmel 1979, 0.83 kDa/nm3 --> 0.83/1000 kDa/A3
-            dMwF = MwF * relative_uncertainty
-            #label = 'Mw = %1.1f kDa (+/-10%s)' % (MwF,'%')
-            label = 'Mw = %1.1f+/- %1.1fkDa' % (MwF,dMwF)
+            
+            label = 'Mw = %1.1f kDa (+/-10%s)' % (MwF,'%')
             
         else:
             label = ''
@@ -703,7 +601,7 @@ if __name__=='__main__':
     
     ## Porod
     if Porod:
-        y = qdat**4 * (Idat - background)
+        y = qdat**4 * Idat
         dy = qdat**4 * sigma
         if Porod_limit:
             qm_Porod = Porod_limit
@@ -818,7 +716,6 @@ if __name__=='__main__':
     else:
         output["pr"] = "%s/pr.dat" % folder
     output["dataused"] = "%s/data.dat" % folder
-    #if outlier_ite: 
     if Noutlier: 
         output["outlier_filtered"] = "%s/outlier_filtered.dat" % folder
     output["fitofdata"] = "%s/fit_q.dat" % folder
@@ -832,7 +729,7 @@ if __name__=='__main__':
     output["kratkyfig"] = "%s/Kratky.png" % folder
     output["porodfig"] = "%s/Porod.png" % folder
     if Prob<0.003:
-        if abs(1-beta)>=0.1:
+        if abs(1-beta)>0.05:
             output["rescaled"] = "%s/rescale.dat" % folder
             output["scale_factor"] = "%s/scale_factor.dat" % folder
             output["rescalefig"] = "%s/rescale.png" % folder
@@ -840,7 +737,7 @@ if __name__=='__main__':
     output["zip"] = "%s/results_%s.zip" % (folder,prefix)
 
     # values
-    output["dmaxout"] = "%1.2f" % dmax_out
+    output["dmaxout"] = "%1.2f" % dmax
     output["Rg"] = "%1.2f" % Rg
     if Guinier:
         if Rg_Guinier == 0:
@@ -857,16 +754,16 @@ if __name__=='__main__':
     if Prob>=0.003:
         output["beta"] = "No correction"
     elif rescale_mode == 'C':
-        if abs(1-beta)>=0.1:
+        if abs(1-beta)>0.05:
             output["beta"] = "%1.2f" % beta 
         else:
             output["beta"] = "No correction"
     else:
         output["beta"] = "see scale_factor.dat"
 
-    output["Rmax"] = "%1.1f" % Run_max
-    output["Rmax_expect"] = "%1.1f +/- %1.1f" % (Run_max_expect,dRun_max_expect)
-    output["p_Rmax"] = "%s" % p_Run_max_str
+    output["Rmax"] = "%1.1f" % Rmax
+    output["Rmax_expect"] = "%1.1f +/- %1.1f" % (Rmax_expect,dRmax_expect)
+    output["p_Rmax"] = "%s" % p_Rmax_str
     output["NR"] = "%1.1f" % NR
     output["NR_expect"] = "%1.1f +/- %1.1f" % (NR_expect,dNR_expect)
     if p_NR < 0.001:

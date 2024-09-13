@@ -309,69 +309,53 @@ if __name__=='__main__':
                 if not noextracalc:
                     noextracalc = '100'
 
-            CONTINUE_Trans = True
-            SECOND_TRY = False
-            while CONTINUE_Trans:
-                try:
-                    ## make input file with Json input for running bift
-                    f = open("inputfile.dat",'w')
-                    f.write('%s\n' % data)
-                    f.write('%f\n' % qmin)
-                    f.write('%f\n' % qmax)
-                    f.write('%s\n' % Bg)
-                    f.write('%s\n' % nrebin)
-                    f.write('%s\n' % dmax)
-                    f.write('\n')
-                    f.write('%s\n' % alpha)
-                    f.write('%s\n' % smear)
-                    f.write('\n')
-                    f.write('\n')
-                    f.write('%s\n' % prpoints)
-                    f.write('%s\n' % noextracalc)
-                    f.write('%s\n' % transformation)
-                    f.write('%s\n' % fitbackground)
-                    f.write('%s\n' % rescale_mode) # rescale method. N: non-constant, C: constant, I: intensity-dependent
-                    if rescale_mode == 'N':
-                        f.write('%s\n' % nbin)
-                    else:
-                        f.write('\n')
-                    f.write('\n')
-                    f.close()
+            ## make input file with Json input for running bift
+            f = open("inputfile.dat",'w')
+            f.write('%s\n' % data)
+            f.write('%f\n' % qmin)
+            f.write('%f\n' % qmax)
+            f.write('%s\n' % Bg)
+            f.write('%s\n' % nrebin)
+            f.write('%s\n' % dmax)
+            f.write('\n')
+            f.write('%s\n' % alpha)
+            f.write('%s\n' % smear)
+            f.write('\n')
+            f.write('\n')
+            f.write('%s\n' % prpoints)
+            f.write('%s\n' % noextracalc)
+            f.write('%s\n' % transformation)
+            f.write('%s\n' % fitbackground)
+            f.write('%s\n' % rescale_mode) # rescale method. N: non-constant, C: constant, I: intensity-dependent
+            if rescale_mode == 'N':
+                f.write('%s\n' % nbin)
+            else:
+                f.write('\n')
+            f.write('\n')
+            f.close()
 
-                    ## run bayesfit
-                    f = open('stdout.dat','w')
-                    path = os.path.dirname(os.path.realpath(__file__))
-                    execute([path + '/source/bift','<','inputfile.dat'],f)
-                    f.close()
-            
-                    ## import data and fit
-                    qdat,Idat,sigma = np.genfromtxt('data.dat',skip_header=0,usecols=[0,1,2],unpack=True)
-                    sigma_rs = np.genfromtxt('rescale.dat',skip_header=3,usecols=[2],unpack=True)
-                    qfit,Ifit = np.genfromtxt('fit.dat',skip_header=1,usecols=[0,1],unpack=True)
-            
-                    ## interpolate fit on q-values from data
-                    Ifit_interp = np.interp(qdat,qfit,Ifit)
-                    with open('fit_q.dat','w') as f:
-                        for x,y in zip(qdat,Ifit_interp):
-                            f.write('%10.10f %10.10f\n' % (x,y))
+            ## run bayesfit
+            f = open('stdout.dat','w')
+            path = os.path.dirname(os.path.realpath(__file__))
+            execute([path + '/source/bift','<','inputfile.dat'],f)
+            f.close()
 
-                    ## calculate residuals
-                    R = (Idat-Ifit_interp)/sigma
-                    maxR = np.ceil(np.amax(abs(R)))
-                    R_rs = (Idat-Ifit_interp)/sigma_rs
-                    maxR_rs = np.ceil(np.amax(abs(R_rs)))
-            
-                    CONTINUE_Trans = False
+            ## import data and fit
+            qdat,Idat,sigma = np.genfromtxt('data.dat',skip_header=0,usecols=[0,1,2],unpack=True)
+            sigma_rs = np.genfromtxt('rescale.dat',skip_header=3,usecols=[2],unpack=True)
+            qfit,Ifit = np.genfromtxt('fit.dat',skip_header=1,usecols=[0,1],unpack=True)
+    
+            ## interpolate fit on q-values from data
+            Ifit_interp = np.interp(qdat,qfit,Ifit)
+            with open('fit_q.dat','w') as f:
+                for x,y in zip(qdat,Ifit_interp):
+                    f.write('%10.10f %10.10f\n' % (x,y))
 
-                except:
-                    if SECOND_TRY:
-                        CONTINUE_Trans = False
-                    if transformation == 'N':
-                        transformation = 'D'
-                        SECOND_TRY = True
-                    elif transformation == 'D':
-                        transformation = 'N'
-                        SECOND_TRY = True
+            ## calculate residuals
+            R = (Idat-Ifit_interp)/sigma
+            maxR = np.ceil(np.amax(abs(R)))
+            R_rs = (Idat-Ifit_interp)/sigma_rs
+            maxR_rs = np.ceil(np.amax(abs(R_rs)))
 
             ## outlier analysis
             x = np.linspace(-10,10,1000)
@@ -383,7 +367,7 @@ if __name__=='__main__':
                 p[i] = np.sum(pdx[idx_i])
             p /= norm
             p *= len(R) # correction for multiple testing
-            idx = np.where(p<0.01)
+            idx = np.where(p<0.03)
             Noutlier = len(idx[0])
             idx_max = np.argmax(abs(R))
             filename_outlier = 'outlier_filtered.dat'
@@ -395,7 +379,7 @@ if __name__=='__main__':
                             f.write('%e %e %e\n' % (qdat[i],Idat[i],sigma[i]))
         
             ## retrive output from parameter file
-            I0,dmax_out,Rg,chi2r,background,alpha,Ng,Ns,evidence,Prob,Prob_str,assessment,beta,Run_max,Run_max_expect,dRun_max_expect,p_Run_max_str,NR,NR_expect,dNR_expect,p_NR,qmax_useful = read_params(qmin,qmax)
+            I0,dmax_out,Rg,chi2r,background,alpha,Ng,Ns,evidence,Prob,Prob_str,assessment,beta,Rmax,Rmax_expect,dRmax_expect,p_Rmax_str,NR,NR_expect,dNR_expect,p_NR,qmax_useful = read_params(qmin,qmax)
         
             if qmax_ite:
                 qmax = qmax_useful
@@ -500,15 +484,12 @@ if __name__=='__main__':
         p1.set_xlabel(r'$q$ [%s$^{-1}$]' % units)
         
     ## plot outliers
-    if Noutlier>1:
+    if Noutlier:
         p0.plot(qdat[idx],Idat[idx],linestyle='none',marker='o',markerfacecolor='none',markeredgecolor='grey',zorder=4,label='potential outliers')
         p1.plot(qdat[idx],R[idx],linestyle='none',marker='o',markerfacecolor='none',markeredgecolor='grey',zorder=4)
         p0.plot(qdat[idx_max],Idat[idx_max],linestyle='none',marker='o',markerfacecolor='none',markeredgecolor='black',zorder=4,label='worst outlier')
         p1.plot(qdat[idx_max],R[idx_max],linestyle='none',marker='o',markerfacecolor='none',markeredgecolor='black',zorder=4)
-    elif Noutlier == 1:
-        p0.plot(qdat[idx_max],Idat[idx_max],linestyle='none',marker='o',markerfacecolor='none',markeredgecolor='black',zorder=4,label='potential outlier')
-        p1.plot(qdat[idx_max],R[idx_max],linestyle='none',marker='o',markerfacecolor='none',markeredgecolor='black',zorder=4)
-
+            
     p1.set_ylabel(r'$\Delta I(q)/\sigma$')
     try:
         p1.set_ylim(-maxR,maxR)
@@ -641,7 +622,7 @@ if __name__=='__main__':
 
     ## Kratky
     if Kratky:
-        y,y0 = Idat-background,I0-background
+        y,y0 = Idat,I0
 
         qRg = qdat*Rg
 
@@ -655,33 +636,25 @@ if __name__=='__main__':
             dxxI = x*x*sigma
 
         if Kratky_Mw:
-            if units == 'nm':
-                qdat_aa = qdat*0.1
-                Rg_aa = Rg*10
-            else:
-                qdat_aa = qdat
-                Rg_aa = Rg
-            qm = np.amin([8.0/Rg_aa,np.amax(qdat_aa)])
-            relative_uncertainty = np.max([Rg_aa/300,0.1]) # Ficher et al 2010 J. Appl. Cryst. (2010). 43, 101-109
-
             idx = np.where(qRg <= 8.0)
-            yy = qdat_aa**2*y
-            dq_aa = (np.amax(qdat_aa[idx])-np.amin(qdat_aa[idx]))/len(idx[0])
-            Qt = np.sum(yy[idx])*dq_aa
-            Vt = 2*np.pi**2*y0/Qt
+            yy = qdat**2*y
+            dq = (np.amax(qdat[idx])-np.amin(qdat[idx]))/len(idx[0])
+            Qt = np.sum(yy[idx])*dq
+            Vt = 2*np.pi**2*y0/Qt # units of data: nm3 or A3
+            if units == 'nm':
+                Vt = Vt*1000 # convert to A3
             
             #MwP = 0.625/1000 * Vt # Petoukhov et al 2012, 0.625 kDa/nm3 -> 0.625/1000 kDa/A3
-           
-            # Piiadov et al 2018 Protein Science  https://doi.org/10.1002/pro.3528
+            
+            qm = np.amin([8.0/Rg,np.amax(qdat)])
             qm2,qm3,qm4 = qm**2,qm**3,qm**4
             A = -2.114e6*qm**4 + 2.920e6*qm3 - 1.472e6*qm2 + 3.349e5*qm - 3.577e4
             B =                  12.09*qm3   - 9.39*qm2    + 3.03*qm    + 0.29
             Vm = A+B*Vt # A
            
             MwF = 0.83/1000 * Vm # Squire and Himmel 1979, 0.83 kDa/nm3 --> 0.83/1000 kDa/A3
-            dMwF = MwF * relative_uncertainty
-            #label = 'Mw = %1.1f kDa (+/-10%s)' % (MwF,'%')
-            label = 'Mw = %1.1f+/- %1.1fkDa' % (MwF,dMwF)
+            
+            label = 'Mw = %1.1f kDa (+/-10%s)' % (MwF,'%')
             
         else:
             label = ''
@@ -703,7 +676,7 @@ if __name__=='__main__':
     
     ## Porod
     if Porod:
-        y = qdat**4 * (Idat - background)
+        y = qdat**4 * Idat
         dy = qdat**4 * sigma
         if Porod_limit:
             qm_Porod = Porod_limit
@@ -832,7 +805,7 @@ if __name__=='__main__':
     output["kratkyfig"] = "%s/Kratky.png" % folder
     output["porodfig"] = "%s/Porod.png" % folder
     if Prob<0.003:
-        if abs(1-beta)>=0.1:
+        if abs(1-beta)>0.05:
             output["rescaled"] = "%s/rescale.dat" % folder
             output["scale_factor"] = "%s/scale_factor.dat" % folder
             output["rescalefig"] = "%s/rescale.png" % folder
@@ -857,16 +830,16 @@ if __name__=='__main__':
     if Prob>=0.003:
         output["beta"] = "No correction"
     elif rescale_mode == 'C':
-        if abs(1-beta)>=0.1:
+        if abs(1-beta)>0.05:
             output["beta"] = "%1.2f" % beta 
         else:
             output["beta"] = "No correction"
     else:
         output["beta"] = "see scale_factor.dat"
 
-    output["Rmax"] = "%1.1f" % Run_max
-    output["Rmax_expect"] = "%1.1f +/- %1.1f" % (Run_max_expect,dRun_max_expect)
-    output["p_Rmax"] = "%s" % p_Run_max_str
+    output["Rmax"] = "%1.1f" % Rmax
+    output["Rmax_expect"] = "%1.1f +/- %1.1f" % (Rmax_expect,dRmax_expect)
+    output["p_Rmax"] = "%s" % p_Rmax_str
     output["NR"] = "%1.1f" % NR
     output["NR_expect"] = "%1.1f +/- %1.1f" % (NR_expect,dNR_expect)
     if p_NR < 0.001:
