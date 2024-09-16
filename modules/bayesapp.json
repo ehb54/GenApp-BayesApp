@@ -246,13 +246,12 @@
         ,{
             "role"       : "input"
             ,"id"         : "prpoints"
-            ,"label"      : "Number of points in p(r)"
+            ,"label"      : "Number of points in p(r) (default: auto)"
             ,"type"       : "integer"
             ,"min"        : 20
-            ,"default"    : 70
             ,"max"        : 500
 	    ,"repeat"     : "options"
-            ,"help"       : "<p>Optionally enter the number of points in the estimated function p(r): more points increase the cpu-time.</p><p>Default: 70, Minimum 20, Maximum 500</p>"
+            ,"help"       : "<p>Optionally enter the number of points in the estimated function p(r): more points increase the cpu-time.</p><p>Default: auto, Minimum 20, Maximum 500</p>"
         }
         ,{
             "role"       : "input"

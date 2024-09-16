@@ -169,6 +169,25 @@ if __name__=='__main__':
         data = prefix
         os.system('cp "%s" "%s/%s"' % (data_file_path,folder,data))
 
+    """ 
+    try:
+        dummy = json_variables['Kratky']
+        Kratky = 1
+        try:
+            dummy = json_variables['Kratky_dim']
+            Kratky_dim = 1
+        except:
+            Kratky_dim = 0
+        try:
+            dummy = json_variables['Kratky_Mw']
+            Kratky_Mw = 1
+        except:
+            Kratky_Mw = 0
+    except:
+        Kratky = 0
+
+    """
+
     ## check if qmin should be updated (due to skip_first option)
     try:
         qmax = float(q_max)
@@ -229,8 +248,8 @@ if __name__=='__main__':
             out_line = 'footer lines in datafile:  %d\n' % footer
             d.udpmessage({"_textarea":out_line})
             
-            if (not dmax or transformation == 'A' or not prpoints):
-                ## initial (fast) run to estimate best parameters automatically
+            if (not dmax or transformation == 'A'):
+                ## estimate best value for dmax and best transformation
                 ## make input file with Json input for running bift
                 f = open("inputfile.dat",'w')
                 f.write('%s\n' % data)
@@ -241,26 +260,20 @@ if __name__=='__main__':
                 f.write('%s\n' % dmax)
                 f.write('\n')
                 if alpha:
-                    if alpha[0] == 'f':
-                        f.write('%s\n' % alpha)
-                    else:
-                        f.write('f%s\n' % alpha)
+                    f.write('%s\n' % alpha)
                 else:
                     f.write('f5\n') # fix alpha
                 f.write('%s\n' % smear)
                 f.write('\n')
                 f.write('\n')
-                if not prpoints:
-                    f.write('50\n') # pr points set to 50
-                else:
-                    f.write('%s\n' % prpoints)
+                f.write('50\n') # pr points set to 50
                 f.write('\n') # 0 extra error calculations
                 if transformation == 'A':
-                    f.write('D\n') # use Debye transformations, if nothing is opted for
+                    f.write('D\n')
                 else:
                     f.write('%s\n' % transformation)
                 f.write('%s\n' % fitbackground)
-                f.write('%s\n' % rescale_mode) # rescale method. N: non-constant, C: constant
+                f.write('%s\n' % rescale_mode) # rescale method. N: non-constant, C: constant, I: intensity-dependent
                 if rescale_mode == 'N':
                     f.write('%s\n' % nbin)
                 else:
@@ -268,19 +281,17 @@ if __name__=='__main__':
                 f.write('\n')
                 f.close()
 
-                ## run bayesfit (fast run)
+                ## run bayesfit
                 f = open('stdout.dat','w')
                 path = os.path.dirname(os.path.realpath(__file__))
                 execute([path + '/source/bift','<','inputfile.dat'],f)
                 f.close()
-               
-                ## get dmax initial guess from fast run
+                
                 if not dmax:
                     ## retrive dmax from parameter file
                     dmax_value = read_params(qmin,qmax)[1]
                     dmax = '%s' % dmax_value
                 
-                ## set prpoints from dmax in fast run
                 if not prpoints:
                     if units == 'nm':
                         dmax_aa = float(dmax)*10 # dmax in angstrom
@@ -291,8 +302,10 @@ if __name__=='__main__':
                         prpoints = '%s' % tmp
                     else:
                         prpoints = '50'
-                   
-                ## set transformation depending on negative points in pr in fast run
+                    
+                ## check for negative values in pr
+                #chi2r = read_params(qmin,qmax)[3]
+                #if chi2r > 5:
                 if transformation == 'A':
                     r,pr,d_pr = np.genfromtxt('pr.dat',skip_header=0,usecols=[0,1,2],unpack=True)
                     threshold_pr = np.max(pr)*1E-4
