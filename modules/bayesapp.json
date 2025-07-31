@@ -349,14 +349,14 @@
         ,{
             "role"       : "input"
             ,"id"         : "Bg"
-            ,"label"      : "Subtract constant before plotting and IFT"
+            ,"label"      : "Subtract constant before IFT and plot"
             ,"type"       : "float"
             ,"min"        : -10
             ,"default"    : 0.0
             ,"max"        : 10
             ,"step"       : 0.001
             ,"repeat"     : "options"
-            ,"help"       : "<p>Subtract constant from I (I -> I-const)</p><p>Accurate background subtraction is essential for Mw determination via integral over Kratky plot</p><p>The Porod plot should be approx constatant at high q.</p>"
+            ,"help"       : "<p>Subtract constant from I (I -> I-const)</p><p>If opted for, then a constant background is still fitted, but this can improve the initial guess.<p>Accurate background subtraction is essential for Mw determination via integral over Kratky plot</p><p>The Porod plot should be approx constatant at high q.</p>"
         }
 	,{
             "role"       : "input"
