@@ -25,6 +25,12 @@ if __name__=='__main__':
     ## set up messaging
     d = genapp(json_variables)
 
+
+    #################################################################################
+    ## version information
+    #################################################################################
+    version = '2.0'
+
     #################################################################################
     ## read Json input
     #################################################################################
@@ -44,9 +50,7 @@ if __name__=='__main__':
     try:
         dummy = json_variables['Guinier']
         Guinier = 1
-        #qmaxRg = float(json_variables['Guinier_qmaxRg']) # qmax*Rg in Guinier analysis
         qmaxRg_in = json_variables['Guinier_qmaxRg'] # qmax*Rg in Guinier analysis
-        #Guinier_skip = int(json_variables['Guinier_skip']) # skip first points in Guinier analysis
         Guinier_skip_in = json_variables['Guinier_skip'] # skip first points in Guinier analysis   
     except:
         Guinier = 0
@@ -90,6 +94,7 @@ if __name__=='__main__':
         prpoints = json_variables['prpoints'] # number of points in p(r)
         noextracalc = json_variables['noextracalc'] # number of extra calculations
         rescale_mode = json_variables['rescale_mode'] # model name
+        Bg = json_variables['Bg']
         try:
             dummy = json_variables['dmaxfixed']
             dmax = 'f%s' % dmax
@@ -121,13 +126,17 @@ if __name__=='__main__':
         try:
             skip_first = int(json_variables['skip_first']) # skip first points
         except:
-            skip_first = 0
+            skip_first = ''
         try:
             dummy = json_variables["outlier_ite"]
             outlier_ite = 1
         except:
             outlier_ite = 0
-        Bg = json_variables['Bg']
+        try:
+            dummy = json_variables["fast_run"]
+            fast_run = 1
+        except:
+            fast_run = 0
     except:
         transformation = 'A'
         dmax = ''
@@ -140,9 +149,10 @@ if __name__=='__main__':
         smear = ''
         noextracalc = ''
         rescale_mode = 'C'
-        skip_first = 0
+        skip_first = ''
         outlier_ite = 0
-        Bg = ' '
+        fast_run = 0
+        Bg = ''
     qmax_ite = 0 # disable this function for now...
 
     ## read output folder
@@ -164,10 +174,10 @@ if __name__=='__main__':
         d.udpmessage({"_textarea":"this will not affect the result, but the new name appears in the input file: inputfile.dat\n"})
         d.udpmessage({"_textarea":"------------------------------------------------------------------------------------------\n\n"})
         data = 'data_name_too_long_for_fortran77.dat'
-        os.system('cp "%s" "%s/%s"' % (data_file_path,folder,data))
+        #os.system('cp "%s" "%s/%s"' % (data_file_path,folder,data))
     else:
         data = prefix
-        os.system('cp "%s" "%s/%s"' % (data_file_path,folder,data))
+    os.system('cp "%s" "%s/%s"' % (data_file_path,folder,data))
 
     ## check if qmin should be updated (due to skip_first option)
     try:
@@ -180,9 +190,15 @@ if __name__=='__main__':
         qmin = 0.0
     header,footer = get_header_footer(data)
     try:
-        q_check = np.genfromtxt(data,skip_header=header+skip_first,skip_footer=footer,usecols=[0],unpack=True)
+        if skip_first:
+            q_check = np.genfromtxt(data,skip_header=header+skip_first,skip_footer=footer,usecols=[0],unpack=True)
+        else:
+            q_check = np.genfromtxt(data,skip_header=header,skip_footer=footer,usecols=[0],unpack=True)
     except:
-        q_check = np.genfromtxt(data,skip_header=header+skip_first,skip_footer=footer,usecols=[0],unpack=True,encoding='cp855')
+        if skip_first:
+            q_check = np.genfromtxt(data,skip_header=header+skip_first,skip_footer=footer,usecols=[0],unpack=True,encoding='cp855')
+        else:
+            q_check = np.genfromtxt(data,skip_header=header,skip_footer=footer,usecols=[0],unpack=True,encoding='cp855')
     if q_check[0] > qmin:
         qmin = q_check[0]
     if q_check[-1] < qmax:
@@ -206,30 +222,35 @@ if __name__=='__main__':
         d.udpmessage({"_textarea": out_line})
         sys.exit()
 
+    ## print start bayesapp message
+    d.udpmessage({"_textarea":"=================================================================================\n"})
+    d.udpmessage({"_textarea":"running bayesapp...\n"})
+    d.udpmessage({"_textarea":"version: %s\n" % version})
+    d.udpmessage({"_textarea":"=================================================================================\n"})
+    out_line = 'header lines in datafile:  %d\n' % header
+    d.udpmessage({"_textarea":out_line})
+    out_line = 'footer lines in datafile:  %d\n' % footer
+    d.udpmessage({"_textarea":out_line})
+    d.udpmessage({"_textarea":"=================================================================================\n"})
+
     ##################################
     # beginning of outlier while loop 
     ##################################
-    CONTINUE = 1
-    count_ite,max_ite = 0,20
-    while CONTINUE:
-
+    CONTINUE_OUTLIER = 1
+    count_ite,max_ite,Noutlier_prev,outliers_removed = 0,20,1e3,0
+    while CONTINUE_OUTLIER:
         ##################################
-        # beginning of qmax while loop 
+        # beginning of qmax while loop (currently disabled) 
         ##################################
         CONTINUE_QMAX = 1
         count_ite_qmax,max_ite_qmax = 0,1
         while CONTINUE_QMAX: 
-
-            ## run bayesfit
-            d.udpmessage({"_textarea":"----------------------\n"})
-            d.udpmessage({"_textarea":"running bayesapp...\n"})
-            d.udpmessage({"_textarea":"----------------------\n\n"})
-            out_line = 'header lines in datafile:  %d\n' % header
-            d.udpmessage({"_textarea":out_line})
-            out_line = 'footer lines in datafile:  %d\n' % footer
-            d.udpmessage({"_textarea":out_line})
-            
-            if (not dmax or transformation == 'A' or not prpoints):
+            count_auto = 0
+            ##########################################################
+            # beginning of auto dmax/transformation/skip while loop
+            ##########################################################
+            while (not dmax or transformation == 'A' or not isinstance(skip_first,int)) and count_auto < 3:
+                count_auto += 1
                 ## initial (fast) run to estimate best parameters automatically
                 ## make input file with Json input for running bift
                 f = open("inputfile.dat",'w')
@@ -251,7 +272,7 @@ if __name__=='__main__':
                 f.write('\n')
                 f.write('\n')
                 if not prpoints:
-                    f.write('50\n') # pr points set to 50
+                    f.write('70\n') #set pr points in fast run
                 else:
                     f.write('%s\n' % prpoints)
                 f.write('\n') # 0 extra error calculations
@@ -274,41 +295,161 @@ if __name__=='__main__':
                 execute([path + '/source/bift','<','inputfile.dat'],f)
                 f.close()
                
-                ## get dmax initial guess from fast run
+                ## estimate dmax from fast run
                 if not dmax:
                     ## retrive dmax from parameter file
                     dmax_value = read_params(qmin,qmax)[1]
                     dmax = '%s' % dmax_value
-                
-                ## set prpoints from dmax in fast run
-                if not prpoints:
-                    if units == 'nm':
-                        dmax_aa = float(dmax)*10 # dmax in angstrom
-                    else:
-                        dmax_aa = float(dmax)
-                    if dmax_aa > 150:
-                        tmp = int(np.amin([dmax_aa/3,150])) # set prpoints to dmax/3, but maximum 150
-                        prpoints = '%s' % tmp
-                    else:
-                        prpoints = '50'
-                   
+                    d.udpmessage({"_textarea":"=================================================================================\n"})
+                    d.udpmessage({"_textarea":"dmax %f\n" % dmax_value})
+                    d.udpmessage({"_textarea":"=================================================================================\n"})
+
                 ## set transformation depending on negative points in pr in fast run
-                if transformation == 'A':
+                if transformation == 'A' and not fast_run:
                     r,pr,d_pr = np.genfromtxt('pr.dat',skip_header=0,usecols=[0,1,2],unpack=True)
-                    threshold_pr = np.max(pr)*1E-4
+                    threshold_pr = np.max(pr)*1E-5
                     contain_negative_entries = np.any(pr<-threshold_pr)
                     if contain_negative_entries:
                         transformation = 'N' # N for negative (allow negative values)
+                        d.udpmessage({"_textarea":"=================================================================================\n"})
+                        d.udpmessage({"_textarea":"transformation: %s\n" % transformation})
+                        d.udpmessage({"_textarea":"=================================================================================\n"})
+                        if dmax[0] == 'f':
+                            pass
+                        else:
+                            dmax = '' # reset dmax
                     else:
                         transformation = 'D'
+                        d.udpmessage({"_textarea":"=================================================================================\n"})
+                        d.udpmessage({"_textarea":"transformation: %s\n" % transformation})
+                        d.udpmessage({"_textarea":"=================================================================================\n"})
 
-                ## increase noextracalc
-                if not noextracalc:
-                    noextracalc = '100'
+                ## set prpoints from dmax in fast run
+                if (not prpoints and dmax and not fast_run): 
+                    if dmax[0] == 'f':
+                        dmax_aa = float(dmax[1:])
+                    else:
+                        dmax_aa = float(dmax)
 
+                    if units == 'nm':
+                        dmax_aa *= 10 # convert dmax from nm to angstrom
+
+                    threshold_dmax_aa = 180
+                    if dmax_aa > threshold_dmax_aa:
+                        tmp = int(np.amin([dmax_aa/3,150])) # set prpoints to dmax/3, but maximum 150
+                        prpoints = '%d' % tmp
+                    else:
+                        prpoints = '60' # min value of pr_points
+                    d.udpmessage({"_textarea":"=================================================================================\n"})
+                    d.udpmessage({"_textarea":"number of points in pr: %s\n" % prpoints})
+                    d.udpmessage({"_textarea":"=================================================================================\n"})   
+
+                ## determine skip_first
+                if not isinstance(skip_first,int) and not fast_run:
+                    Rg_value = read_params(qmin,qmax)[2]
+                    try:
+                        q,I,dI = np.genfromtxt(data,skip_header=header,skip_footer=footer,usecols=[0,1,2],unpack=True)
+                    except:
+                        q,I,dI = np.genfromtxt(data,skip_header=header,skip_footer=footer,usecols=[0,1,2],unpack=True,encoding='cp855')
+                    ## remove entries with zero for the error
+                    idx_nonzero = np.where(dI!=0)
+                    q,I,dI = q[idx_nonzero],I[idx_nonzero],dI[idx_nonzero]
+
+                    xx = q**2
+                    yy = np.log(abs(I))
+                    dyy = dI/abs(I)
+                    M = len(q)
+                    qmax_Guinier = 1.25/Rg_value
+                    if qmax_Guinier > qmin:
+                        last = M-np.where(q<qmax_Guinier)[0][-1]
+                        skip_first_max = 25
+                        n = np.min([len(q[:-last]),skip_first_max+2])
+                        skip_first_array = range(0,n)
+                        i = 0
+                        chi2r_prev = 1e99
+                        YELLOW_CARDS = 0
+                        while i<n and YELLOW_CARDS<2:
+                            s = skip_first_array[i]
+                            x = xx[s:-last]
+                            y = yy[s:-last]
+                            dy = dyy[s:-last]
+                            N = len(x)
+                            degree = 2
+                            c = np.polyfit(x,y,degree)
+                            poly2_function = np.poly1d(c)
+                            yfit = poly2_function(x)
+                            R = (yfit-y)/dy
+                            chi2r = np.sum(R**2)/(N-3)
+                            chi2r_dif = (chi2r_prev - chi2r)/chi2r
+                            if abs(R[0]) < 1.5 and chi2r_dif<0.3:
+                                YELLOW_CARDS += 1
+                            i +=1
+                            chi2r_prev = chi2r
+                        try:
+                            skip_first = np.max([s-2,0])
+                        except:
+                            skip_first = 0
+                        #check that slope is negative
+                        a,b = np.polyfit(xx[skip_first:-last],yy[skip_first:-last],1)
+                        if a>=0:
+                            skip_first = 0
+                        else:
+                            Rg_calc = np.sqrt(-3*a)
+                        #check qmaxRg is below 1.4
+                        qmaxRg = qmax_Guinier*Rg_value
+                        qmaxRg_calc = qmax_Guinier*Rg_calc
+                        if qmaxRg > 1.4:
+                            skip_first = 0
+                        elif qmaxRg_calc > 1.4:
+                            skip_first = 0
+                    else:
+                        skip_first = 0
+                    d.udpmessage({"_textarea":"=================================================================================\n"})
+                    d.udpmessage({"_textarea":"skip first points: %d\n" % skip_first})
+                    d.udpmessage({"_textarea":"=================================================================================\n"})
+                    if skip_first>5:
+                        # convert skip_first to new qmin
+                        try:
+                            q_check = np.genfromtxt(data,skip_header=header+skip_first,skip_footer=footer,usecols=[0],unpack=True)
+                        except:
+                            q_check = np.genfromtxt(data,skip_header=header+skip_first,skip_footer=footer,usecols=[0],unpack=True,encoding='cp855')
+                        if q_check[0] > qmin:
+                            qmin = q_check[0]
+                        d.udpmessage({"_textarea":"=================================================================================\n"})
+                        d.udpmessage({"_textarea":"qmin: %e\n" % qmin})
+                        d.udpmessage({"_textarea":"=================================================================================\n"})
+                        # downscale prpoints (likely smaller dmax)
+                        if prpoints: 
+                            if float(prpoints) > 70:
+                                prpoints = '70'
+                                d.udpmessage({"_textarea":"=================================================================================\n"})
+                                d.udpmessage({"_textarea":"number of points in pr: %s\n" % prpoints})
+                                d.udpmessage({"_textarea":"=================================================================================\n"})
+                        # find new dmax
+                        if dmax:
+                            if dmax[0] == 'f':
+                                pass
+                            else:
+                                dmax = '' # reset dmax
+
+            #############################################################################
+            ## continue after automatically determining all values (if not set by user)
+            #############################################################################
+
+            ## increase noextracalc
+            if not noextracalc:
+                noextracalc = '100'
+            
+            ###############################################################
+            ## make actual run with determined (or manually set) values
+            ###############################################################
+            # if it fails, change the transformation and try again, if if fails again, then exit
+            
             CONTINUE_Trans = True
             SECOND_TRY = False
-            while CONTINUE_Trans:
+            #if fast_run:
+            #    CONTINUE_Trans = False
+            while CONTINUE_Trans and not fast_run:
                 try:
                     ## make input file with Json input for running bift
                     f = open("inputfile.dat",'w')
@@ -336,45 +477,64 @@ if __name__=='__main__':
                     f.close()
 
                     ## run bayesfit
+                    os.remove('parameters.dat') # remove parameters file from initial fast run
                     f = open('stdout.dat','w')
                     path = os.path.dirname(os.path.realpath(__file__))
                     execute([path + '/source/bift','<','inputfile.dat'],f)
                     f.close()
             
-                    ## import data and fit
-                    qdat,Idat,sigma = np.genfromtxt('data.dat',skip_header=0,usecols=[0,1,2],unpack=True)
-                    sigma_rs = np.genfromtxt('rescale.dat',skip_header=3,usecols=[2],unpack=True)
-                    qfit,Ifit = np.genfromtxt('fit.dat',skip_header=1,usecols=[0,1],unpack=True)
-            
-                    ## interpolate fit on q-values from data
-                    Ifit_interp = np.interp(qdat,qfit,Ifit)
-                    with open('fit_q.dat','w') as f:
-                        for x,y in zip(qdat,Ifit_interp):
-                            f.write('%10.10f %10.10f\n' % (x,y))
-
-                    ## calculate residuals
-                    R = (Idat-Ifit_interp)/sigma
-                    maxR = np.ceil(np.amax(abs(R)))
-                    R_rs = (Idat-Ifit_interp)/sigma_rs
-                    maxR_rs = np.ceil(np.amax(abs(R_rs)))
-            
+                    ## import params data to check that bift was running ok (if not, algorithm will change transformation and try again)
+                    dmax_value = read_params(qmin,qmax)[1] # if there is no parameters.dat file, this will give error
+                    int(dmax_value) # if dmax_valule is nan, this will give error
+                    dmax = '%f' % dmax_value
+                    try:
+                        dummy = json_variables['dmaxfixed']
+                        dmax = 'f%s' % dmax
+                    except:
+                        pass
                     CONTINUE_Trans = False
-
                 except:
                     if SECOND_TRY:
                         CONTINUE_Trans = False
-                    if transformation == 'N':
+                        d.udpmessage({"_textarea":"=================================================================================\n"})
+                        d.udpmessage({"_textarea":"Could not find a solution. Try chaning Maximum distance, Transformation, Alpha, Number of points in pr, or Skip first points\n"})
+                        d.udpmessage({"_textarea":"=================================================================================\n"})
+                        exit()
+                    elif transformation in ['N','M']:
                         transformation = 'D'
+                        d.udpmessage({"_textarea":"=================================================================================\n"})
+                        d.udpmessage({"_textarea":"transformation: %s\n" % transformation})
+                        d.udpmessage({"_textarea":"=================================================================================\n"})
                         SECOND_TRY = True
                     elif transformation == 'D':
                         transformation = 'N'
+                        d.udpmessage({"_textarea":"=================================================================================\n"})
+                        d.udpmessage({"_textarea":"transformation: %s\n" % transformation})
+                        d.udpmessage({"_textarea":"=================================================================================\n"})
                         SECOND_TRY = True
+                    
+            ## import data and fit
+            qdat,Idat,sigma = np.genfromtxt('data.dat',skip_header=0,usecols=[0,1,2],unpack=True)
+            sigma_rs = np.genfromtxt('rescale.dat',skip_header=3,usecols=[2],unpack=True)
+            qfit,Ifit = np.genfromtxt('fit.dat',skip_header=1,usecols=[0,1],unpack=True)
+
+            ## interpolate fit on q-values from data
+            Ifit_interp = np.interp(qdat,qfit,Ifit)
+            with open('fit_q.dat','w') as f:
+                for x,y in zip(qdat,Ifit_interp):
+                    f.write('%10.10f %10.10f\n' % (x,y))
+
+            ## calculate residuals
+            R = (Idat-Ifit_interp)/sigma
+            maxR = np.ceil(np.amax(abs(R)))
+            R_rs = (Idat-Ifit_interp)/sigma_rs
+            maxR_rs = np.ceil(np.amax(abs(R_rs)))
 
             ## outlier analysis
             x = np.linspace(-10,10,1000)
             pdx = np.exp(-x**2/2)
             norm = np.sum(pdx)
-            p = np.zeros(len(R))    
+            p = np.zeros(len(R))  
             for i in range(len(R)):
                 idx_i = np.where(x>=abs(R[i]))
                 p[i] = np.sum(pdx[idx_i])
@@ -387,12 +547,12 @@ if __name__=='__main__':
             if Noutlier:
                 with open(filename_outlier,'w') as f:
                     f.write('# data, with worst outlier filtered out\n')
-                    for i in range(len(R)):
+                    for i in range(len(R))          :
                         if i!=idx_max:
                             f.write('%e %e %e\n' % (qdat[i],Idat[i],sigma[i]))
         
             ## retrive output from parameter file
-            I0,dmax_out,Rg,chi2r,background,alpha,Ng,Ns,evidence,Prob,Prob_str,assessment,beta,Run_max,Run_max_expect,dRun_max_expect,p_Run_max_str,NR,NR_expect,dNR_expect,p_NR,qmax_useful = read_params(qmin,qmax)
+            I0,dmax_out,Rg,chi2r,background,alpha_out,Ng,Ns,evidence,Prob,Prob_str,assessment,beta,Run_max,Run_max_expect,dRun_max_expect,p_Run_max_str,NR,NR_expect,dNR_expect,p_NR,qmax_useful = read_params(qmin,qmax)
         
             if qmax_ite:
                 qmax = qmax_useful
@@ -404,26 +564,63 @@ if __name__=='__main__':
                 CONTINUE_QMAX = 0
 
         ###########################
-        # end of qmax while loop 
+        ## end of qmax while loop (currently disabled) 
         ###########################
 
-        if outlier_ite:
-            data = filename_outlier
-            CONTINUE = Noutlier
-        else:
-            CONTINUE = 0
+        ## if there are many outliers, then try to gradually increase number of points in p(r) and rerun
+        #if Noutlier > 1 and Noutlier < Noutlier_prev and not fast_run:
+        if Noutlier > 1 and Noutlier < Noutlier_prev:
+            d.udpmessage({"_textarea":"=================================================================================\n"})
+            d.udpmessage({"_textarea":"number of outliers: %d\n" % Noutlier})
 
+            Noutlier_prev = Noutlier
+            n_pr = int(prpoints)
+            dmax = '%f' % dmax_out # update dmax value
+            try:
+                dummy = json_variables['dmaxfixed']
+                dmax = 'f%s' % dmax
+            except:
+                pass
+ #           alpha = '%f' % alpha_out # update logalpha value # not faster...
+            if n_pr <= 190:
+                n_pr += 50
+                prpoints = '%d' % n_pr
+                d.udpmessage({"_textarea":"trying to improve fit by increasing number of points in p(r)\n"})
+                d.udpmessage({"_textarea":"number of points in p(r): %s\n" % prpoints})
+            d.udpmessage({"_textarea":"=================================================================================\n"})
+        # remove worst outlier and run again
+        elif outlier_ite and Noutlier:
+            data = filename_outlier
+            d.udpmessage({"_textarea":"=================================================================================\n"})
+            d.udpmessage({"_textarea":"number of outliers: %d\n" % Noutlier})
+            d.udpmessage({"_textarea":"removing worst oulier and rerunning\n"})
+            d.udpmessage({"_textarea":"=================================================================================\n"})
+            CONTINUE_OUTLIER = Noutlier
+            outliers_removed += 1
+        else:
+            CONTINUE_OUTLIER = 0
         count_ite += 1
         if count_ite >= max_ite:
-            CONTINUE = 0
+            CONTINUE_OUTLIER = 0
             out_line = 'max iterations in outlier removal reached (=%d). prabably something wrong with error estimates in data' % max_ite
             d.udpmessage({"_textarea":out_line})
-
 
     ###########################
     # end of oulier while loop 
     ###########################
-    
+   
+    d.udpmessage({"_textarea":"=================================================================================\n"})
+    d.udpmessage({"_textarea":"number of outliers: %d\n" % Noutlier})
+    d.udpmessage({"_textarea":"number of points in p(r): %s\n" % prpoints})
+    d.udpmessage({"_textarea":"transformation: %s\n" % transformation})
+    d.udpmessage({"_textarea":"qmin: %e\n" % qmin})
+    if isinstance(skip_first,int):
+        d.udpmessage({"_textarea":"skip first points: %d\n" % skip_first})
+    else:
+        d.udpmessage({"_textarea":"skip first points: 0\n"})
+    d.udpmessage({"_textarea":"dmax %s\n" % dmax})
+    d.udpmessage({"_textarea":"=================================================================================\n"})
+
     ## import p(r)
     r,pr,d_pr = np.genfromtxt('pr.dat',skip_header=0,usecols=[0,1,2],unpack=True)
 
@@ -551,8 +748,8 @@ if __name__=='__main__':
             dlnI = sigma[idx]/Idat[idx]
             
             Guinier_skip = 0
-            CONTINUE = True
-            while CONTINUE:
+            CONTINUE_GUINIER = True
+            while CONTINUE_GUINIER:
                 try:
                     a,b = np.polyfit(q2[Guinier_skip:],lnI[Guinier_skip:],1,w=1/dlnI[Guinier_skip:])
                     fit = b+a*q2[Guinier_skip:]
@@ -561,9 +758,9 @@ if __name__=='__main__':
                     if abs(R[0]) > Rmean*2:
                         Guinier_skip += 1
                     else:
-                        CONTINUE = False
+                        CONTINUE_GUINIER = False
                 except:
-                    CONTINUE = False
+                    CONTINUE_GUINIER = False
         
         if qdat[Guinier_skip]*Rg<=qmaxRg:
 
@@ -871,10 +1068,16 @@ if __name__=='__main__':
     else:
         output["p_NR"] = "%1.3f" % p_NR
     output["Noutlier"] = "%d" % Noutlier
+    output["outliers_removed"] = "%d" % outliers_removed
+    if isinstance(skip_first,int):
+        output["skip_first_out"] = "%d" % skip_first
+    else:
+        output["skip_first_out"] = "0"
     output["Ng"] = "%1.2f" % Ng
     output["shannon"] = "%1.2f" % Ns
-    output["logalpha"] = "%1.2f" % alpha 
+    output["logalpha"] = "%1.2f" % alpha_out 
     output["evidence"] = "%1.2f" % evidence
+    output["prpoints_out"] = prpoints
 #    output["axratio_pro"] = "%1.2f" % ax_pro
 #    output["axratio_obl"] = "%1.2f" % ax_obl
     output["qmax_useful"] = "%1.2f" % qmax_useful
