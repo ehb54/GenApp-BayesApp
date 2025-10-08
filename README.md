@@ -32,8 +32,7 @@ instructions for compilation on different OS.
 https://somo.chem.utk.edu/bayesapp/     
 
 #### run locally (batch mode) 
-0) cd bin/source
-1) 
+1) cd bin/source
 2) Compilation (linux):  gfortran -march=native -O3 bift.f -o bift    
                          -march=native may be left out     
                          -m64 or -m32 may be added     
