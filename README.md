@@ -31,17 +31,19 @@ instructions for compilation on different OS.
 #### webinterface with GUI      
 https://somo.chem.utk.edu/bayesapp/     
 
-#### run locally (batch mode)    
-1) Compilation (linux):  gfortran -march=native -O3 bift.f -o bift    
+#### run locally (batch mode) 
+0) cd bin/source
+1) 
+2) Compilation (linux):  gfortran -march=native -O3 bift.f -o bift    
                          -march=native may be left out     
                          -m64 or -m32 may be added     
                          it may be necessary to include the "-static" flag    
                          ... depending on system  
                          
 
-2) Run:                  bift < inputfile.d                        
+3) Run:                  bift < inputfile.d                        
 
-3) The file: inputfile.d has to contain the 16 lines:    
+4) The file: inputfile.d has to contain the 16 lines:    
                                                           input format    
 line 1:  the name of the data file     - compulsory -    [string]    
 line 2:  q_min                         or a blank line   [float]    
