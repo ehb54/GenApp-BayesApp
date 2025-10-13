@@ -2580,7 +2580,9 @@ c**************************************************************************
       DOTSP=0
 
       DO 150 I=jmin,NTOT+nextra
-      SADD=-(f(i)-m(i))**2/sigma(i)
+c      SADD=-(f(i)-m(i))**2/sigma(i)
+c     include radius-dependent weighting, x(i)/x(ntot):
+      SADD=-x(i)/x(ntot)*(f(i)-m(i))**2/sigma(i)
       if(answerm.eq.'Q'.and.i.ge.1) SADD=-F(I)*LOG(F(I)/M(I))+F(I)-M(I)
       S=S+SADD
   133 GRADSI=-2*(f(i)-m(i))/sigma(i)
