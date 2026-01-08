@@ -9,8 +9,7 @@ from genapp3 import genapp
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import gridspec
-#import subprocess
-#import time
+from scipy.interpolate import UnivariateSpline
 from helpfunctions import *
 
 if __name__=='__main__':
@@ -24,7 +23,6 @@ if __name__=='__main__':
     
     ## set up messaging
     d = genapp(json_variables)
-
 
     #################################################################################
     ## version information
@@ -42,7 +40,6 @@ if __name__=='__main__':
     q_max = json_variables['qmax']
     units = json_variables['units']
 
-    # about reading checkboxes and related input
     # the Json input for checkboxes only exists if boxes are checked
     # therefore I use try-except to import
     
@@ -351,7 +348,7 @@ if __name__=='__main__':
                         q,I,dI = np.genfromtxt(data,skip_header=header,skip_footer=footer,usecols=[0,1,2],unpack=True)
                     except:
                         q,I,dI = np.genfromtxt(data,skip_header=header,skip_footer=footer,usecols=[0,1,2],unpack=True,encoding='cp855')
-                    ## remove entries with zero for the error
+                    ## remove entries with zeros in the error column
                     idx_nonzero = np.where(dI!=0)
                     q,I,dI = q[idx_nonzero],I[idx_nonzero],dI[idx_nonzero]
 
@@ -393,6 +390,7 @@ if __name__=='__main__':
                         a,b = np.polyfit(xx[skip_first:-last],yy[skip_first:-last],1)
                         if a>=0:
                             skip_first = 0
+                            Rg_calc = Rg_value 
                         else:
                             Rg_calc = np.sqrt(-3*a)
                         #check qmaxRg is below 1.4
@@ -447,8 +445,6 @@ if __name__=='__main__':
             
             CONTINUE_Trans = True
             SECOND_TRY = False
-            #if fast_run:
-            #    CONTINUE_Trans = False
             while CONTINUE_Trans and not fast_run:
                 try:
                     ## make input file with Json input for running bift
@@ -623,6 +619,7 @@ if __name__=='__main__':
 
     ## import p(r)
     r,pr,d_pr = np.genfromtxt('pr.dat',skip_header=0,usecols=[0,1,2],unpack=True)
+    N_r = len(r)
 
     if make_pr_bin:
         ## intepolate pr on grid with binsize of pr_binsize
@@ -638,16 +635,31 @@ if __name__=='__main__':
             for x,y,z in zip(r_bin,pr_bin,d_pr_bin):
                 f.write('%10.10f %10.10e %10.10e\n' % (x,y,z))
 
+    ## extend pr on denss r grid to get smooth function
+    if pr[1] > 0:
+        r_new,pr_new,d_pr_new = np.insert(r, 1, r[1]*0.1), np.insert(pr, 1, pr[1]*0.08), np.insert(d_pr, 1, d_pr[1]) # add virtual point to enforce positive slope at r=0
+    else:
+        r_new,pr_new,d_pr_new = r,pr,d_pr
+    d_pr_new[d_pr_new == 0] = np.sort(np.unique(d_pr_new))[1]*0.01  # avoid division by zero
+    w_pr = 1.0 / d_pr_new # define weights
+    spline = UnivariateSpline(r_new, pr_new, w=w_pr, s=0.05 * len(r_new)) # smoothing spline and interpolation on dense r grid
+    r_dense = np.linspace(0, r.max(), len(r_new)*20)
+    pr_dense = spline(r_dense)
+    with open('pr_smooth.dat','w') as f:
+        for x,y in zip(r_dense,pr_dense):
+            f.write('%10.10f %10.10e\n' % (x,y))
+    
     ## general plotting settings
     markersize=4
     linewidth=1
 
     ## plot p(r)
     plt.plot(r,np.zeros(len(r)),linestyle='--',color='grey',zorder=0)
-    plt.errorbar(r,pr,yerr=d_pr,marker='.',markersize=markersize,linewidth=linewidth,color='black',label='p(r)')
+    #plt.errorbar(r,pr,yerr=d_pr,marker='.',markersize=markersize,linestyle='None',color='black')
     if make_pr_bin:
         plt.errorbar(r_bin,pr_bin,d_pr_bin,marker='.',markersize=markersize,linewidth=linewidth,color='green',label='p(r), fixed binsize')
         plt.legend(frameon=False)
+    plt.plot(r_dense,pr_dense,linewidth=linewidth,color='black',label='p(r)')
     plt.xlabel(r'$r$ [%s]' % units)
     plt.ylabel(r'$p(r)$')
     plt.title('p(r)')
@@ -796,7 +808,6 @@ if __name__=='__main__':
 
                 f,(p0,p1) = plt.subplots(2,1,gridspec_kw={'height_ratios': [4,1]},sharex=True)
                 p0.errorbar(q2,lnI,yerr=dlnI,linestyle='none',marker='.',markersize=markersize,color='red',zorder=0)
-                #p0.plot(q2[Guinier_skip:],fit,color='black',linewidth=linewidth,zorder=1,label='Guinier fit: $R_g$=%1.2f $(q_{max}R_g$=%1.2f, $\chi^2_r$=%1.1f, points skipped = %d)' % (Rg_Guinier,qmaxRg,chi2r_Guinier,Guinier_skip))
                 p0.plot(q2[Guinier_skip:],fit,color='black',linewidth=linewidth,zorder=1,label='$R_g$=%1.2f, $q_{max}R_g$=%1.2f, $\chi^2_r$=%1.1f, skipped_points=%d' % (Rg_Guinier,qmaxRg,chi2r_Guinier,Guinier_skip))
                 p1.plot(q2[Guinier_skip:],R,linestyle='none',marker='.',markersize=markersize,color='red',zorder=0)
                 p1.plot(q2,q2-q2,color='black',linewidth=linewidth,zorder=1)
@@ -1001,7 +1012,7 @@ if __name__=='__main__':
     os.system('cp %s/source/bift.f %s' % (path,folder))
 
     ## compress output files to zip file
-    os.system('zip results_%s.zip pr.dat pr_bin.dat data.dat fit.dat fit_q.dat parameters.dat rescale.dat outlier_filtered.dat scale_factor.dat stdout.dat bift.f inputfile.dat *.png' % prefix)
+    os.system('zip results_%s.zip pr_smooth.dat pr.dat pr_bin.dat data.dat fit.dat fit_q.dat parameters.dat rescale.dat outlier_filtered.dat scale_factor.dat stdout.dat bift.f inputfile.dat *.png' % prefix)
 
     ## generate output
     output = {} # create an empty python dictionary
@@ -1010,9 +1021,8 @@ if __name__=='__main__':
     if make_pr_bin:
         output["pr"] = "%s/pr_bin.dat" % folder
     else:
-        output["pr"] = "%s/pr.dat" % folder
+        output["pr"] = "%s/pr_smooth.dat" % folder
     output["dataused"] = "%s/data.dat" % folder
-    #if outlier_ite: 
     if Noutlier: 
         output["outlier_filtered"] = "%s/outlier_filtered.dat" % folder
     output["fitofdata"] = "%s/fit_q.dat" % folder
