@@ -1,7 +1,8 @@
 {
     "moduleid" : "bayesapp"
     ,"label"    : "BayesApp"
-    ,"executable"   : "bayesapp.py"
+#    ,"executable"   : "bayesapp.py"
+    ,"executable"   : "bayesapp_wrapper.py"
     ,"submitpolicy" : "all"
 #    ,"uniquedir" : "true"
     ,"centeroutput" : "true"
@@ -561,13 +562,13 @@
             ,"type"       : "text"
             ,"help"       : "Number of Shannon channels"
 	}
-	,{
-            "role"       : "output"
-            ,"id"         : "qmax_useful"
-            ,"label"      : "Useful q-range, suggested qmax"
-            ,"type"       : "text"
-            ,"help"       : "Estimate of the useful q-range. You may want to truncate data at this value. qmax = &pi;N<sub>g</sub>/dmax."
-        }
+#	,{
+#            "role"       : "output"
+#            ,"id"         : "qmax_useful"
+#            ,"label"      : "Useful q-range, suggested qmax"
+#            ,"type"       : "text"
+#            ,"help"       : "Estimate of the useful q-range. You may want to truncate data at this value. qmax = &pi;N<sub>g</sub>/dmax."
+#        }
         ,{
             "role"       : "output"
             ,"id"         : "hroutput3"
